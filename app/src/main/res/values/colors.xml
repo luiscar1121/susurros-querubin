@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Referencias a colores del DESIGN.md -->
+    <color name="md_theme_dark_background">#0b1326</color>
+    <color name="md_theme_dark_surface">#0B1326</color>
+    <color name="md_theme_dark_surface_dim">#0b1326</color>
+    <color name="md_theme_dark_surface_bright">#31394d</color>
+    <color name="md_theme_dark_surface_container">#171f33</color>
+    <color name="md_theme_dark_surface_container_high">#222a3d</color>
+    <color name="md_theme_dark_surface_container_highest">#2d3449</color>
+    <color name="md_theme_dark_on_surface">#dae2fd</color>
+    <color name="md_theme_dark_on_surface_variant">#c4c7c8</color>
+    <color name="md_theme_dark_primary">#BEFF00</color>
+    <color name="md_theme_dark_on_primary">#253500</color>
+    <color name="md_theme_dark_primary_container">#b8f600</color>
+    <color name="md_theme_dark_secondary">#B794FF</color>
+    <color name="md_theme_dark_on_secondary">#3d147e</color>
+    <color name="md_theme_dark_secondary_container">#523e79</color>
+    <color name="md_theme_dark_outline">#8D9479</color>
+    <color name="md_theme_dark_outline_variant">#444748</color>
+    <color name="md_theme_dark_error">#FFB4AB</color>
+    <color name="md_theme_dark_on_error">#690005</color>
+</resources>
