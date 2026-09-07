@@ -8,6 +8,7 @@
     <color name="md_theme_dark_surface_container">#171f33</color>
     <color name="md_theme_dark_surface_container_high">#222a3d</color>
     <color name="md_theme_dark_surface_container_highest">#2d3449</color>
+    <color name="md_theme_dark_surface_container_lowest">#000000</color>
     <color name="md_theme_dark_on_surface">#dae2fd</color>
     <color name="md_theme_dark_on_surface_variant">#c4c7c8</color>
     <color name="md_theme_dark_primary">#BEFF00</color>

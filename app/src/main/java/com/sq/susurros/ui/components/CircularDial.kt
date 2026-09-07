@@ -8,30 +8,33 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterTweak
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.PI
 import kotlin.math.atan2
-import kotlin.math.floor
-import kotlin.math.roundToInt
 
 /**
  * Dial de tiempo circular interactivo (Compose).
@@ -43,7 +46,7 @@ import kotlin.math.roundToInt
  * @param currentTime Texto del tiempo actual (ej: "08:42")
  * @param remainingTime Texto del tiempo restante (ej: "RESTA 03:18")
  * @param progress Progreso del timer (0.0 = empezando, 1.0 = agotado).
- *                 NOTA: el arco visual se invierte (1.0 = completo → arco al 100%).
+ *                 NOTA: el arco visual se invierte (1.0 = completo -> arco al 100%).
  * @param dialSize Tamaño del dial.
  * @param onDrag Callback con el nuevo progreso cuando se arrastra.
  */
@@ -63,16 +66,16 @@ fun CircularDial(
     // Colores del tema
     val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
     val progressColor = MaterialTheme.colorScheme.primary // #BEFF00
-    val borderColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val borderColor = MaterialTheme.colorScheme.surfaceVariant
 
     // Estado interno para el gesto de arrastre
-    val dragProgress = remember { mutableFloatStateOf(progress) }
+    val dragProgress = remember { mutableStateOf(progress) }
 
     Box(
         modifier = Modifier
             .size(dialSize)
             .background(
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                color = MaterialTheme.colorScheme.surface,
                 shape = CircleShape
             )
             .border(
@@ -84,7 +87,7 @@ fun CircularDial(
                 detectDragGesturesAfterTweak(
                     onDragStart = { },
                     onDragEnd = {
-                        onDrag(dragProgress.float)
+                        onDrag(dragProgress.value)
                     },
                     onDrag = { change, _ ->
                         val centerX = size.center.x
@@ -95,12 +98,12 @@ fun CircularDial(
                         // Calcular ángulo desde el centro (0 = arriba, en sentido horario)
                         val angle = atan2(dy, -dx)
                         // Normalizar a [0, 2π] con 0 en la posición superior
-                        var normalized = if (angle < 0) angle + (2 * Math.PI) else angle
+                        var normalized = if (angle < 0) angle + (2 * PI) else angle
                         // Ajustar: 0 en la parte superior (como las 12 en un reloj)
-                        normalized = (normalized - Math.PI / 2 + 2 * Math.PI) % (2 * Math.PI)
+                        normalized = (normalized - PI / 2 + 2 * PI) % (2 * PI)
 
-                        val newProgress = (normalized / (2 * Math.PI)).toFloat()
-                        dragProgress.float = newProgress
+                        val newProgress = (normalized / (2 * PI)).toFloat()
+                        dragProgress.value = newProgress
                     }
                 )
             }
@@ -126,11 +129,6 @@ fun CircularDial(
                 startAngle = 90f, // comienza en la parte superior
                 sweepAngle = progressAngle,
                 useCenter = false,
-                topLeft = Offset(
-                    center.x - radius,
-                    center.y - radius
-                ),
-                size = Size(radius * 2, radius * 2),
                 style = Stroke(
                     width = strokeWidthPx,
                     cap = StrokeCap.Round
@@ -144,11 +142,6 @@ fun CircularDial(
                     startAngle = 90f,
                     sweepAngle = progressAngle,
                     useCenter = false,
-                    topLeft = Offset(
-                        center.x - radius - 4,
-                        center.y - radius - 4
-                    ),
-                    size = Size(radius * 2 + 8, radius * 2 + 8),
                     style = Stroke(
                         width = strokeWidthPx,
                         cap = StrokeCap.Round
@@ -163,7 +156,7 @@ fun CircularDial(
                 .size(140.dp)
                 .align(Alignment.Center),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(

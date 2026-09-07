@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Referencia al drawable ic_launcher -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="192dp"
+    android:height="192dp"
+    android:viewportWidth="192"
+    android:viewportHeight="192">
+    <path
+        android:fillColor="#BEFF00"
+        android:pathData="M96,180 C141.9,180 180,141.9 180,96 C180,50.1 141.9,12 96,12 C50.1,12 12,50.1 12,96 C12,141.9 50.1,180 96,180 Z" />
+</vector>

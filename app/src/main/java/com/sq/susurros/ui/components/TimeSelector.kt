@@ -3,8 +3,10 @@ package com.sq.susurros.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -35,7 +37,7 @@ fun TimeSelector(
     onSelect: (index: Int) -> Unit,
     modifier: Modifier = Modifier,
     activeColor: Color = MaterialTheme.colorScheme.primary,
-    inactiveColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh
+    inactiveColor: Color = MaterialTheme.colorScheme.surfaceVariant
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -51,13 +53,13 @@ fun TimeSelector(
             modifier = Modifier.padding(start = 4.dp)
         )
 
-        androidx.compose.foundation.layout.Row(
+        Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            options.forEachIndexed { index, label ->
+            options.forEachIndexed { index, optionLabel ->
                 TimeChip(
-                    text = label,
+                    text = optionLabel,
                     selected = index == selectedIndex,
                     onClick = { onSelect(index) },
                     selectedColor = activeColor,
@@ -92,10 +94,7 @@ private fun TimeChip(
             containerColor = if (selected) selectedColor else unselectedColor,
             labelColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
         ),
-        border = if (selected) AssistChipDefaults.assistChipBorder(
-            borderColor = selectedColor.copy(alpha = 0.3f),
-            borderWidth = 2.dp
-        ) else null,
-        modifier = Modifier.weight(1f)
+        border = null,
+        modifier = Modifier.width(0.dp).weight(1f)
     )
 }

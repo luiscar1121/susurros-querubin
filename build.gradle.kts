@@ -2,10 +2,11 @@
 // SQ Susurros de Querubín — Project-level configuration
 
 plugins {
-    alias(libs.plugins.android.application) version "8.5.2" apply false
-    alias(libs.plugins.kotlin.android) version "1.9.0" apply false
-    alias(libs.plugins.kotlin.kapt) version "1.9.0" apply false
-    alias(libs.plugins.hilt.android) version "2.52" apply false
+    id("com.android.application") version "8.5.2" apply false
+    id("org.jetbrains.kotlin.android") version "2.0.20" apply false
+    id("com.google.devtools.ksp") version "2.0.20-1.0.25" apply false
+    id("dagger.hilt.android.plugin") version "2.52" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.20" apply false
 }
 
 // Si no se usa en version catalog, definir versiones aquí

@@ -23,6 +23,9 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.sq.susurros.R
 import com.sq.susurros.domain.state.PlaybackState
+import com.sq.susurros.domain.state.isPlaying
+import com.sq.susurros.domain.state.bookVolume
+import com.sq.susurros.domain.state.musicVolume
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,13 +47,20 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 @UnstableApi
-class AudioPlaybackService : Service() {
+class AudioPlaybackService : MediaSessionService() {
 
     companion object {
         const val NOTIFICATION_ID = 1001
         const val CHANNEL_ID = "sq_audio_channel"
         const val CHANNEL_NAME = "SQ Susurros Audio"
         private const val TICK_INTERVAL_MS = 100L // tick de timing para fades
+
+        // Acciones del servicio
+        const val ACTION_START = "com.sq.susurros.START"
+        const val ACTION_STOP = "com.sq.susurros.STOP"
+        const val ACTION_PLAY_PAUSE = "com.sq.susurros.PLAY_PAUSE"
+        const val ACTION_SKIP_NEXT = "com.sq.susurros.SKIP_NEXT"
+        const val ACTION_SKIP_PREVIOUS = "com.sq.susurros.SKIP_PREVIOUS"
     }
 
     @Inject
@@ -58,7 +68,7 @@ class AudioPlaybackService : Service() {
 
     private var mediaPlayer: ExoPlayer? = null
     private var musicPlayer: ExoPlayer? = null
-    private lateinit var mediaSession: MediaSession
+    private var mediaSession: MediaSession? = null
     private lateinit var notificationManager: NotificationManager
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob() + Job())
@@ -110,8 +120,10 @@ class AudioPlaybackService : Service() {
 
     private fun initMediaSession() {
         mediaSession = MediaSession.Builder(this, mediaPlayer!!)
-            .setName(getString(R.string.app_name))
+            .setFlags(MediaSession.FLAG_HANDLED_MEDIA_ACTIONS)
             .build()
+        // Set the session to handle media commands
+        mediaSession?.setMediaButtonReceiver(null)
     }
 
     private fun initNotificationChannel() {
@@ -212,10 +224,14 @@ class AudioPlaybackService : Service() {
      * Permite controlar la reproducción directamente desde la barra de notificaciones.
      */
     private fun createNotification(): Notification {
-        val actionStop = android.app.PendingIntent.getActivity(
+        val actionStop = android.app.PendingIntent.getService(
             this, 0, Intent(this, AudioPlaybackService::class.java).setAction(ACTION_STOP),
             android.app.PendingIntent.FLAG_IMMUTABLE
         )
+
+        val isPlaying = stateManager.state.value.isPlaying
+        val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
+        val playPauseText = if (isPlaying) "Pausar" else "Reproducir"
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("SQ Susurros de Querubín")
@@ -231,8 +247,8 @@ class AudioPlaybackService : Service() {
                 )
             )
             .addAction(
-                if (stateManager.state.value.isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
-                if (stateManager.state.value.isPlaying) "Pausar" else "Reproducir",
+                playPauseIcon,
+                playPauseText,
                 android.app.PendingIntent.getService(
                     this, 1, Intent(this, AudioPlaybackService::class.java)
                         .setAction(ACTION_PLAY_PAUSE),
@@ -260,12 +276,11 @@ class AudioPlaybackService : Service() {
         val mediaItem = MediaItem.fromUri(uriString)
         mediaPlayer?.setMediaItem(mediaItem)
         mediaPlayer?.prepare()
-
         stateManager.startListening(bookPosition = 0L, timerMs = timerMs)
     }
 
     /**
-     // Prepara la música de fondo.
+     * Prepara la música de fondo.
      */
     fun prepareMusic(uriString: String, durationMs: Long) {
         val mediaItem = MediaItem.fromUri(uriString)
@@ -282,18 +297,9 @@ class AudioPlaybackService : Service() {
     override fun onDestroy() {
         stopTicker()
         serviceScope.cancel()
-        mediaSession.release()
+        mediaSession?.release()
         mediaPlayer?.release()
         musicPlayer?.release()
         super.onDestroy()
-    }
-
-    // Acciones del servicio
-    companion object {
-        const val ACTION_START = "com.sq.susurros.START"
-        const val ACTION_STOP = "com.sq.susurros.STOP"
-        const val ACTION_PLAY_PAUSE = "com.sq.susurros.PLAY_PAUSE"
-        const val ACTION_SKIP_NEXT = "com.sq.susurros.SKIP_NEXT"
-        const val ACTION_SKIP_PREVIOUS = "com.sq.susurros.SKIP_PREVIOUS"
     }
 }

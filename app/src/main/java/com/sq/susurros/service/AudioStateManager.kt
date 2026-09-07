@@ -124,7 +124,7 @@ class AudioStateManager {
                         _state.update {
                             PlaybackState.BookResume(
                                 bookPosition = current.bookPosition,
-                                musicPosition = current.musicPosition + musicElapsed,
+                                musicPosition = current.musicPosition + elapsed,
                                 remaining = remaining,
                                 activeTimer = current.activeTimer,
                                 crossfadeElapsed = crossfadeElapsed,
@@ -142,7 +142,7 @@ class AudioStateManager {
                         // Actualizar posición de música
                         _state.update {
                             current.copy(
-                                musicPosition = current.musicPosition + musicElapsed,
+                                musicPosition = current.musicPosition + elapsed,
                                 remaining = remaining
                             )
                         }
@@ -164,7 +164,7 @@ class AudioStateManager {
                     _state.update {
                         PlaybackState.BookResume(
                             bookPosition = current.bookPosition,
-                            musicPosition = current.musicPosition + musicElapsed,
+                            musicPosition = current.musicPosition + elapsed,
                             remaining = remaining,
                             activeTimer = current.activeTimer,
                             crossfadeElapsed = crossfadeElapsed,

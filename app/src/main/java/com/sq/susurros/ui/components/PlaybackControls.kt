@@ -1,7 +1,6 @@
 // app/src/main/java/com/sq/susurros/ui/components/PlaybackControls.kt
 package com.sq.susurros.ui.components
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -17,14 +16,18 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -70,7 +73,9 @@ fun PlaybackControls(
                 onClick = onSkipBackward
             )
 
-            Spacer(modifier = Modifier.size(8.dp))
+            androidx.compose.foundation.layout.Spacer(
+                modifier = androidx.compose.ui.Modifier.size(8.dp)
+            )
 
             // Botón Play/Pause (FloatingActionButton)
             FloatingActionButton(
@@ -89,7 +94,9 @@ fun PlaybackControls(
                 )
             }
 
-            Spacer(modifier = Modifier.size(8.dp))
+            androidx.compose.foundation.layout.Spacer(
+                modifier = androidx.compose.ui.Modifier.size(8.dp)
+            )
 
             // Botón de adelanto 10s
             ControlButton(
@@ -126,7 +133,7 @@ private fun ControlButton(
             )
             .semantics { this.contentDescription = contentDesc },
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainer
+        color = MaterialTheme.colorScheme.surface
     ) {
         Icon(
             painter = painterResource(id = iconRes),
@@ -144,7 +151,7 @@ private fun VolumeSlider(
     volume: Float,
     onVolumeChange: (Float) -> Unit
 ) {
-    val volumeState = remember { mutableFloatStateOf(volume) }
+    val volumeState = remember { mutableStateOf(volume) }
 
     Column(
         modifier = Modifier
@@ -153,15 +160,15 @@ private fun VolumeSlider(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Slider(
-            value = volumeState.float,
+            value = volumeState.value,
             onValueChange = {
-                volumeState.float = it
+                volumeState.value = it
                 onVolumeChange(it)
             },
             valueRange = 0f..1f,
-            colors = androidx.compose.material3.SliderDefaults.colors(
+            colors = SliderDefaults.colors(
                 activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
                 thumbColor = MaterialTheme.colorScheme.primary
             ),
             modifier = Modifier.fillMaxWidth()
@@ -175,9 +182,4 @@ private fun VolumeSlider(
             letterSpacing = 0.5.sp
         )
     }
-}
-
-@Composable
-private fun Spacer(modifier: Modifier) {
-    Box(modifier = modifier)
 }

@@ -3,7 +3,7 @@ package com.sq.susurros.di
 
 import android.content.ContentResolver
 import android.content.Context
-import androidx.hilt.annotation.ApplicationContext
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.sq.susurros.service.AudioStateManager
 import dagger.Module
 import dagger.Provides

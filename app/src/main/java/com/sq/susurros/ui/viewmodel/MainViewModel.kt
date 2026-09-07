@@ -97,7 +97,7 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     fun setBookInfo(title: String, author: String, duration: Long) {
         _uiState.update {
-            current.copy(
+            it.copy(
                 bookTitle = title,
                 bookAuthor = author,
                 bookDurationMs = duration
