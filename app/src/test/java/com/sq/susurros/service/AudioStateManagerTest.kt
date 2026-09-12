@@ -1,9 +1,7 @@
 // app/src/test/java/com/sq/susurros/service/AudioStateManagerTest.kt
 package com.sq.susurros.service
 
-import app.cash.turbine.test
 import com.sq.susurros.domain.state.PlaybackState
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,8 +10,7 @@ import kotlin.test.assertTrue
 /**
  * Tests para AudioStateManager — máquina de estados y timing de fades.
  *
- * Usa Turbine para verificar emisiones de StateFlow y JUnit5 corriendo
- * sobre coroutines-test.
+ * Usa verificación de emisiones de StateFlow corriendo sobre coroutines-test.
  */
 class AudioStateManagerTest {
 
@@ -30,9 +27,10 @@ class AudioStateManagerTest {
 
         val state = manager.state.value
         assertTrue(state is PlaybackState.Listening)
-        assertEquals(3_600_000L, state.activeTimer)
-        assertEquals(1.0f, state.bookVolume)
-        assertEquals(0.0f, state.musicVolume)
+        val listeningState = state as PlaybackState.Listening
+        assertEquals(3_600_000L, listeningState.activeTimer)
+        assertEquals(1.0f, listeningState.bookVolume)
+        assertEquals(0.0f, listeningState.musicVolume)
     }
 
     @Test
@@ -44,8 +42,9 @@ class AudioStateManagerTest {
 
         val state = manager.state.value
         assertTrue(state is PlaybackState.Listening)
+        val listeningState = state as PlaybackState.Listening
         // 1 minuto transcurrido, book position avanza
-        assertEquals(60_000L, state.bookPosition)
+        assertEquals(60_000L, listeningState.bookPosition)
     }
 
     @Test
@@ -67,14 +66,14 @@ class AudioStateManagerTest {
         manager.startListening(bookPosition = 0L, timerMs = 10_000L)
         manager.onTick(elapsedMs = 4_000L) // entra a MusicFadeIn
 
-        var state = manager.state.value
-        assertTrue(state is PlaybackState.MusicFadeIn)
+        val state1 = manager.state.value
+        assertTrue(state1 is PlaybackState.MusicFadeIn)
 
         // 10s de fade -> completar
         manager.onTick(elapsedMs = 10_000L)
 
-        state = manager.state.value
-        assertTrue(state is PlaybackState.MusicPlaying)
+        val state2 = manager.state.value
+        assertTrue(state2 is PlaybackState.MusicPlaying)
     }
 
     @Test
@@ -84,14 +83,14 @@ class AudioStateManagerTest {
         manager.onTick(elapsedMs = 4_000L) // MusicFadeIn
         manager.onTick(elapsedMs = 10_000L) // MusicPlaying
 
-        var state = manager.state.value
-        assertTrue(state is PlaybackState.MusicPlaying)
+        val state1 = manager.state.value
+        assertTrue(state1 is PlaybackState.MusicPlaying)
 
         // 5s restantes -> BookResume
         manager.onTick(elapsedMs = 5_000L)
 
-        state = manager.state.value
-        assertTrue(state is PlaybackState.BookResume)
+        val state2 = manager.state.value
+        assertTrue(state2 is PlaybackState.BookResume)
     }
 
     @Test
@@ -103,16 +102,17 @@ class AudioStateManagerTest {
         manager.onTick(elapsedMs = 10_000L)
         manager.onTick(elapsedMs = 5_000L) // BookResume
 
-        var state = manager.state.value
-        assertTrue(state is PlaybackState.BookResume)
+        val state1 = manager.state.value
+        assertTrue(state1 is PlaybackState.BookResume)
 
         // 5s de crossfade completos -> Listening
         manager.onTick(elapsedMs = 5_000L)
 
-        state = manager.state.value
-        assertTrue(state is PlaybackState.Listening)
+        val state2 = manager.state.value
+        assertTrue(state2 is PlaybackState.Listening)
+        val listeningState = state2 as PlaybackState.Listening
         // El timer se reinicia
-        assertEquals(10_000L, state.activeTimer)
+        assertEquals(10_000L, listeningState.activeTimer)
     }
 
     @Test

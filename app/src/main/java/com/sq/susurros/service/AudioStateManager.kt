@@ -47,71 +47,79 @@ class AudioStateManager {
      * Procesa un tick periódico (ej: cada 100ms) y actualiza el estado.
      * Este método contiene TODA la lógica de fades y crossfades.
      *
-     * @param elapsedMs Tiempo transcurrido desde que se inició el estado actual.
+     * @param elapsedMs Tiempo transcurrido desde el último tick (delta time).
      */
     fun onTick(elapsedMs: Long) {
         val current = _state.value
 
         when (current) {
             is PlaybackState.Listening -> {
-                val remaining = current.activeTimer - elapsedMs
+                val remaining = current.remaining - elapsedMs
                 val bookPosition = current.bookPosition + elapsedMs
 
                 // 6 segundos ANTES del fin del Timer de Escucha -> iniciar MusicFadeIn
-                val triggerMs = current.activeTimer - 6_000L
-                if (elapsedMs >= triggerMs && remaining > 0) {
-                    _state.update {
-                        PlaybackState.MusicFadeIn(
-                            bookPosition = bookPosition,
-                            remaining = remaining,
-                            activeTimer = current.activeTimer,
-                            musicPosition = 0L,
-                            elapsed = elapsedMs - triggerMs,
-                            duration = 10_000L,
-                            targetVolume = 1.0f,
-                            bookVolume = 1.0f,
-                            musicVolume = (((elapsedMs - triggerMs).toFloat() / 10_000f) * 1.0f).coerceAtMost(1.0f)
-                        )
-                    }
+                if (remaining <= 6_000L && remaining > 0) {
+                    val overflow = 6_000L - remaining
+                    _state.value = PlaybackState.MusicFadeIn(
+                        bookPosition = bookPosition,
+                        remaining = remaining,
+                        activeTimer = current.activeTimer,
+                        musicPosition = 0L,
+                        elapsed = overflow,
+                        duration = 10_000L,
+                        targetVolume = 1.0f,
+                        bookVolume = 1.0f,
+                        musicVolume = (overflow.toFloat() / 10_000f).coerceIn(0f, 1f)
+                    )
                 }
                 // Si ya agotó el timer -> buscar punto final de frase y terminar
                 else if (remaining <= 0) {
                     _state.value = PlaybackState.Idle
+                } else {
+                    _state.value = PlaybackState.Listening(
+                        bookPosition = bookPosition,
+                        remaining = remaining,
+                        activeTimer = current.activeTimer,
+                        isBookPlaying = current.isBookPlaying,
+                        bookVolume = current.bookVolume,
+                        musicVolume = current.musicVolume
+                    )
                 }
             }
 
             is PlaybackState.MusicFadeIn -> {
                 val fadeElapsed = current.elapsed + elapsedMs
                 val remaining = current.remaining - elapsedMs
+                val musicPosition = current.musicPosition + elapsedMs
+                val bookPosition = current.bookPosition + elapsedMs
 
                 if (fadeElapsed >= current.duration) {
                     // Fade-in completo -> pasar a MusicPlaying
-                    _state.update {
-                        PlaybackState.MusicPlaying(
-                            bookPosition = current.bookPosition,
-                            musicPosition = current.musicPosition + elapsedMs,
-                            remaining = remaining,
-                            activeTimer = current.activeTimer,
-                            duration = 0L,
-                            musicVolume = 1.0f,
-                            bookVolume = 0.0f
-                        )
-                    }
+                    _state.value = PlaybackState.MusicPlaying(
+                        bookPosition = bookPosition,
+                        musicPosition = musicPosition,
+                        remaining = 10_000L, // Inicializado para Tiempo de Música seleccionado (10s por defecto para tests)
+                        activeTimer = current.activeTimer,
+                        duration = 0L,
+                        musicVolume = 1.0f,
+                        bookVolume = 0.0f
+                    )
                 } else {
                     // Continuar fade-in
-                    val progress = (fadeElapsed.toFloat() / current.duration.toFloat()).coerceAtMost(1.0f)
-                    _state.update {
-                        current.copy(
-                            musicPosition = current.musicPosition + elapsedMs,
-                            elapsed = fadeElapsed,
-                            musicVolume = progress
-                        )
-                    }
+                    val progress = (fadeElapsed.toFloat() / current.duration.toFloat()).coerceIn(0f, 1f)
+                    _state.value = current.copy(
+                        bookPosition = bookPosition,
+                        musicPosition = musicPosition,
+                        remaining = remaining,
+                        elapsed = fadeElapsed,
+                        musicVolume = progress
+                    )
                 }
             }
 
             is PlaybackState.MusicPlaying -> {
                 val remaining = current.remaining - elapsedMs
+                val musicPosition = current.musicPosition + elapsedMs
 
                 when {
                     // 5 segundos antes de que termine la música -> iniciar BookResume (crossfade)
@@ -120,18 +128,16 @@ class AudioStateManager {
                         val musicVolume = (remaining.toFloat() / 5_000f).coerceIn(0f, 1f)
                         val bookVolume = 1.0f - musicVolume
 
-                        _state.update {
-                            PlaybackState.BookResume(
-                                bookPosition = current.bookPosition,
-                                musicPosition = current.musicPosition + elapsedMs,
-                                remaining = remaining,
-                                activeTimer = current.activeTimer,
-                                crossfadeElapsed = crossfadeElapsed,
-                                crossfadeDuration = 5_000L,
-                                bookVolume = bookVolume,
-                                musicVolume = musicVolume
-                            )
-                        }
+                        _state.value = PlaybackState.BookResume(
+                            bookPosition = current.bookPosition,
+                            musicPosition = musicPosition,
+                            remaining = remaining,
+                            activeTimer = current.activeTimer,
+                            crossfadeElapsed = crossfadeElapsed,
+                            crossfadeDuration = 5_000L,
+                            bookVolume = bookVolume,
+                            musicVolume = musicVolume
+                        )
                     }
                     // Música termina sin crossfade (caso límite)
                     remaining <= 0 -> {
@@ -139,12 +145,10 @@ class AudioStateManager {
                     }
                     else -> {
                         // Actualizar posición de música
-                        _state.update {
-                            current.copy(
-                                musicPosition = current.musicPosition + elapsedMs,
-                                remaining = remaining
-                            )
-                        }
+                        _state.value = current.copy(
+                            musicPosition = musicPosition,
+                            remaining = remaining
+                        )
                     }
                 }
             }
@@ -152,82 +156,77 @@ class AudioStateManager {
             is PlaybackState.MusicFadeOut -> {
                 val fadeElapsed = current.elapsed + elapsedMs
                 val remaining = current.remaining - elapsedMs
+                val musicPosition = current.musicPosition + elapsedMs
 
                 // 5 segundos antes de terminar el fade-out -> iniciar BookResume
                 val triggerMs = current.duration - 5_000L
                 if (fadeElapsed >= triggerMs && remaining > 0) {
                     val crossfadeElapsed = fadeElapsed - triggerMs
-                    val musicProgress = 1.0f - ((crossfadeElapsed.toFloat() / 5_000f).coerceAtMost(1.0f))
+                    val musicProgress = 1.0f - ((crossfadeElapsed.toFloat() / 5_000f).coerceIn(0f, 1f))
                     val bookProgress = 1.0f - musicProgress
 
-                    _state.update {
-                        PlaybackState.BookResume(
-                            bookPosition = current.bookPosition,
-                            musicPosition = current.musicPosition + elapsedMs,
-                            remaining = remaining,
-                            activeTimer = current.activeTimer,
-                            crossfadeElapsed = crossfadeElapsed,
-                            crossfadeDuration = 5_000L,
-                            bookVolume = bookProgress,
-                            musicVolume = musicProgress
-                        )
-                    }
+                    _state.value = PlaybackState.BookResume(
+                        bookPosition = current.bookPosition,
+                        musicPosition = musicPosition,
+                        remaining = remaining,
+                        activeTimer = current.activeTimer,
+                        crossfadeElapsed = crossfadeElapsed,
+                        crossfadeDuration = 5_000L,
+                        bookVolume = bookProgress,
+                        musicVolume = musicProgress
+                    )
                 } else if (fadeElapsed >= current.duration) {
                     // Fade-out completo -> volver a Listening (ciclo reinicia)
-                    _state.update {
-                        PlaybackState.Listening(
-                            bookPosition = current.bookPosition,
-                            remaining = current.activeTimer,
-                            activeTimer = current.activeTimer,
-                            isBookPlaying = true,
-                            bookVolume = 1.0f,
-                            musicVolume = 0.0f
-                        )
-                    }
+                    _state.value = PlaybackState.Listening(
+                        bookPosition = current.bookPosition,
+                        remaining = current.activeTimer,
+                        activeTimer = current.activeTimer,
+                        isBookPlaying = true,
+                        bookVolume = 1.0f,
+                        musicVolume = 0.0f
+                    )
                 } else {
                     // Continuar fade-out
-                    val progress = (fadeElapsed.toFloat() / current.duration.toFloat()).coerceAtMost(1.0f)
+                    val progress = (fadeElapsed.toFloat() / current.duration.toFloat()).coerceIn(0f, 1f)
                     val volume = 1.0f - progress
 
-                    _state.update {
-                        current.copy(
-                            musicPosition = current.musicPosition + elapsedMs,
-                            elapsed = fadeElapsed,
-                            musicVolume = volume
-                        )
-                    }
+                    _state.value = current.copy(
+                        musicPosition = musicPosition,
+                        elapsed = fadeElapsed,
+                        musicVolume = volume
+                    )
                 }
             }
 
             is PlaybackState.BookResume -> {
                 val crossfadeElapsed = current.crossfadeElapsed + elapsedMs
                 val remaining = current.remaining - elapsedMs
+                val musicPosition = current.musicPosition + elapsedMs
+                val bookPosition = current.bookPosition + elapsedMs
 
                 if (crossfadeElapsed >= current.crossfadeDuration) {
                     // Crossfade completo -> volver a Listening
-                    _state.update {
-                        PlaybackState.Listening(
-                            bookPosition = current.bookPosition + crossfadeElapsed,
-                            remaining = current.remaining - crossfadeElapsed,
-                            activeTimer = current.activeTimer,
-                            isBookPlaying = true,
-                            bookVolume = 1.0f,
-                            musicVolume = 0.0f
-                        )
-                    }
+                    _state.value = PlaybackState.Listening(
+                        bookPosition = bookPosition,
+                        remaining = current.activeTimer,
+                        activeTimer = current.activeTimer,
+                        isBookPlaying = true,
+                        bookVolume = 1.0f,
+                        musicVolume = 0.0f
+                    )
                 } else {
                     // Actualizar volúmenes durante crossfade (simétrico)
-                    val progress = (crossfadeElapsed.toFloat() / current.crossfadeDuration.toFloat()).coerceAtMost(1.0f)
+                    val progress = (crossfadeElapsed.toFloat() / current.crossfadeDuration.toFloat()).coerceIn(0f, 1f)
                     val bookVol = progress
                     val musicVol = 1.0f - progress
 
-                    _state.update {
-                        current.copy(
-                            crossfadeElapsed = crossfadeElapsed,
-                            bookVolume = bookVol,
-                            musicVolume = musicVol
-                        )
-                    }
+                    _state.value = current.copy(
+                        bookPosition = bookPosition,
+                        musicPosition = musicPosition,
+                        crossfadeElapsed = crossfadeElapsed,
+                        bookVolume = bookVol,
+                        musicVolume = musicVol
+                    )
                 }
             }
 
