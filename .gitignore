@@ -36,3 +36,5 @@ gradle/wrapper/gradle-wrapper.properties.cache
 # OS
 .DS_Store
 Thumbs.db
+gradle/.tmp/
+gradle/.tmp/
