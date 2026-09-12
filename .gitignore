@@ -2,6 +2,10 @@
 .gradle/
 build/
 captures/
+gradle/caches/
+gradle/daemon/
+gradle/native/
+gradle/wrapper/dists/
 
 # Android IDE
 .idea/

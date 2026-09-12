@@ -12,9 +12,6 @@ pluginManagement {
             if (requested.id.id == "org.jetbrains.kotlin.android") {
                 useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:${requested.version}")
             }
-            if (requested.id.id == "kotlin-kapt") {
-                useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:${requested.version}")
-            }
             if (requested.id.id == "dagger.hilt.android.plugin") {
                 useModule("com.google.dagger:hilt-android-gradle-plugin:${requested.version}")
             }
@@ -28,7 +25,6 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
     }
-    // Removed versionCatalogs to avoid "from called more than once" error
 }
 
 rootProject.name = "SQSusurrosQuerubin"

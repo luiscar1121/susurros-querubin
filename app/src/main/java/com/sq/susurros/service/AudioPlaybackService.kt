@@ -31,6 +31,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -53,9 +54,8 @@ class AudioPlaybackService : MediaSessionService() {
         const val NOTIFICATION_ID = 1001
         const val CHANNEL_ID = "sq_audio_channel"
         const val CHANNEL_NAME = "SQ Susurros Audio"
-        private const val TICK_INTERVAL_MS = 100L // tick de timing para fades
+        private const val TICK_INTERVAL_MS = 100L
 
-        // Acciones del servicio
         const val ACTION_START = "com.sq.susurros.START"
         const val ACTION_STOP = "com.sq.susurros.STOP"
         const val ACTION_PLAY_PAUSE = "com.sq.susurros.PLAY_PAUSE"
@@ -75,7 +75,6 @@ class AudioPlaybackService : MediaSessionService() {
     private val tickerHandler = Handler(Looper.getMainLooper())
     private var tickerRunnable: Runnable? = null
 
-    // Callback para recibir comandos desde el ViewModel/Activity
     private var onStateChange: ((PlaybackState) -> Unit)? = null
 
     override fun onCreate() {
@@ -86,12 +85,6 @@ class AudioPlaybackService : MediaSessionService() {
     }
 
     private fun initPlayers() {
-        val audioAttrs = android.media.AudioAttributes.Builder()
-            .setUsage(C.USAGE_MEDIA)
-            .setContentType(C.CONTENT_TYPE_MUSIC)
-            .build()
-
-        // Reproductor principal (TTS/libro)
         mediaPlayer = ExoPlayer.Builder(this)
             .setAudioAttributes(
                 androidx.media3.common.AudioAttributes.Builder()
@@ -102,7 +95,6 @@ class AudioPlaybackService : MediaSessionService() {
             )
             .build()
 
-        // Reproductor de música de fondo
         musicPlayer = ExoPlayer.Builder(this)
             .setAudioAttributes(
                 androidx.media3.common.AudioAttributes.Builder()
@@ -113,17 +105,13 @@ class AudioPlaybackService : MediaSessionService() {
             )
             .build()
 
-        // Ajustar volúmenes iniciales
         mediaPlayer?.volume = 1.0f
         musicPlayer?.volume = 0.0f
     }
 
     private fun initMediaSession() {
         mediaSession = MediaSession.Builder(this, mediaPlayer!!)
-            .setFlags(MediaSession.FLAG_HANDLED_MEDIA_ACTIONS)
             .build()
-        // Set the session to handle media commands
-        mediaSession?.setMediaButtonReceiver(null)
     }
 
     private fun initNotificationChannel() {
@@ -152,7 +140,6 @@ class AudioPlaybackService : MediaSessionService() {
     }
 
     private fun startForegroundPlayback() {
-        // Notificación con acciones directas
         startForeground(
             NOTIFICATION_ID,
             createNotification(),
@@ -163,18 +150,14 @@ class AudioPlaybackService : MediaSessionService() {
             }
         )
 
-        // Observar el estado del AudioStateManager y aplicar volúmenes/acciones
         serviceScope.launch {
             stateManager.state.onEach { state ->
-                // Aplicar volúmenes a los MediaPlayers
                 mediaPlayer?.volume = state.bookVolume
                 musicPlayer?.volume = state.musicVolume
-                // Notificar a la UI
                 onStateChange?.invoke(state)
             }.collectLatest {}
         }
 
-        // Iniciar ticker para actualizar estados de fades
         startTicker()
     }
 
@@ -219,16 +202,7 @@ class AudioPlaybackService : MediaSessionService() {
         stopSelf()
     }
 
-    /**
-     * Notificación con acciones: Play/Pause, Skip Next, Skip Previous.
-     * Permite controlar la reproducción directamente desde la barra de notificaciones.
-     */
     private fun createNotification(): Notification {
-        val actionStop = android.app.PendingIntent.getService(
-            this, 0, Intent(this, AudioPlaybackService::class.java).setAction(ACTION_STOP),
-            android.app.PendingIntent.FLAG_IMMUTABLE
-        )
-
         val isPlaying = stateManager.state.value.isPlaying
         val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
         val playPauseText = if (isPlaying) "Pausar" else "Reproducir"
@@ -268,10 +242,6 @@ class AudioPlaybackService : MediaSessionService() {
             .build()
     }
 
-    /**
-     * Prepara el reproductor del libro con el contenido TTS/audio.
-     * Se llama cuando se selecciona un libro desde la app.
-     */
     fun prepareBook(uriString: String, timerMs: Long) {
         val mediaItem = MediaItem.fromUri(uriString)
         mediaPlayer?.setMediaItem(mediaItem)
@@ -279,9 +249,6 @@ class AudioPlaybackService : MediaSessionService() {
         stateManager.startListening(bookPosition = 0L, timerMs = timerMs)
     }
 
-    /**
-     * Prepara la música de fondo.
-     */
     fun prepareMusic(uriString: String, durationMs: Long) {
         val mediaItem = MediaItem.fromUri(uriString)
         musicPlayer?.setMediaItem(mediaItem)
@@ -293,6 +260,10 @@ class AudioPlaybackService : MediaSessionService() {
     }
 
     override fun onBind(p0: Intent?): IBinder? = null
+
+    override fun onGetSession(controllerInfo: androidx.media3.session.MediaSession.ControllerInfo): MediaSession? {
+        return mediaSession
+    }
 
     override fun onDestroy() {
         stopTicker()

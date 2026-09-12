@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -73,9 +74,7 @@ fun PlaybackControls(
                 onClick = onSkipBackward
             )
 
-            androidx.compose.foundation.layout.Spacer(
-                modifier = androidx.compose.ui.Modifier.size(8.dp)
-            )
+            Spacer(modifier = Modifier.size(8.dp))
 
             // Botón Play/Pause (FloatingActionButton)
             FloatingActionButton(
@@ -94,9 +93,7 @@ fun PlaybackControls(
                 )
             }
 
-            androidx.compose.foundation.layout.Spacer(
-                modifier = androidx.compose.ui.Modifier.size(8.dp)
-            )
+            Spacer(modifier = Modifier.size(8.dp))
 
             // Botón de adelanto 10s
             ControlButton(
@@ -139,9 +136,7 @@ private fun ControlButton(
             painter = painterResource(id = iconRes),
             contentDescription = contentDesc,
             tint = iconTint,
-            modifier = Modifier
-                .size(24.dp)
-                .align(Alignment.Center)
+            modifier = Modifier.size(24.dp)
         )
     }
 }

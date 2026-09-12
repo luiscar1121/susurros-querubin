@@ -92,7 +92,7 @@ class AudioStateManager {
                             musicPosition = current.musicPosition + elapsedMs,
                             remaining = remaining,
                             activeTimer = current.activeTimer,
-                            duration = 0L, // se calcula en MusicPlaying
+                            duration = 0L,
                             musicVolume = 1.0f,
                             bookVolume = 0.0f
                         )
@@ -111,8 +111,7 @@ class AudioStateManager {
             }
 
             is PlaybackState.MusicPlaying -> {
-                val musicElapsed = elapsedMs
-                val remaining = current.remaining - musicElapsed
+                val remaining = current.remaining - elapsedMs
 
                 when {
                     // 5 segundos antes de que termine la música -> iniciar BookResume (crossfade)
@@ -124,7 +123,7 @@ class AudioStateManager {
                         _state.update {
                             PlaybackState.BookResume(
                                 bookPosition = current.bookPosition,
-                                musicPosition = current.musicPosition + elapsed,
+                                musicPosition = current.musicPosition + elapsedMs,
                                 remaining = remaining,
                                 activeTimer = current.activeTimer,
                                 crossfadeElapsed = crossfadeElapsed,
@@ -142,7 +141,7 @@ class AudioStateManager {
                         // Actualizar posición de música
                         _state.update {
                             current.copy(
-                                musicPosition = current.musicPosition + elapsed,
+                                musicPosition = current.musicPosition + elapsedMs,
                                 remaining = remaining
                             )
                         }
@@ -164,7 +163,7 @@ class AudioStateManager {
                     _state.update {
                         PlaybackState.BookResume(
                             bookPosition = current.bookPosition,
-                            musicPosition = current.musicPosition + elapsed,
+                            musicPosition = current.musicPosition + elapsedMs,
                             remaining = remaining,
                             activeTimer = current.activeTimer,
                             crossfadeElapsed = crossfadeElapsed,
@@ -177,7 +176,7 @@ class AudioStateManager {
                     // Fade-out completo -> volver a Listening (ciclo reinicia)
                     _state.update {
                         PlaybackState.Listening(
-                            bookPosition = current.bookPosition, // reanudir 20s antes
+                            bookPosition = current.bookPosition,
                             remaining = current.activeTimer,
                             activeTimer = current.activeTimer,
                             isBookPlaying = true,

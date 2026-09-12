@@ -1,11 +1,10 @@
 // app/src/main/java/com/sq/susurros/ui/components/CircularDial.kt
 package com.sq.susurros.ui.components
 
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGesturesAfterTweak
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
@@ -25,14 +24,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
 import kotlin.math.PI
 import kotlin.math.atan2
 
@@ -59,20 +60,24 @@ fun CircularDial(
     dialStroke: Dp = 8.dp,
     fontSizeCurrent: TextUnit = 24.sp,
     fontSizeRemaining: TextUnit = 10.sp,
-    onDrag: (progress: Float) -> Unit
+    onDrag: (progress: Float) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val strokeWidthPx = dialStroke.toPx()
+    val density = LocalDensity.current
+    val strokeWidthPx = with(density) { dialStroke.toPx() }
 
     // Colores del tema
     val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-    val progressColor = MaterialTheme.colorScheme.primary // #BEFF00
+    val progressColor = MaterialTheme.colorScheme.primary
     val borderColor = MaterialTheme.colorScheme.surfaceVariant
 
     // Estado interno para el gesto de arrastre
     val dragProgress = remember { mutableStateOf(progress) }
+    val dialSizePx = with(density) { dialSize.toPx() }
+    val halfSize = dialSizePx / 2f
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(dialSize)
             .background(
                 color = MaterialTheme.colorScheme.surface,
@@ -84,49 +89,45 @@ fun CircularDial(
                 shape = CircleShape
             )
             .pointerInput(Unit) {
-                detectDragGesturesAfterTweak(
+                detectDragGestures(
                     onDragStart = { },
                     onDragEnd = {
                         onDrag(dragProgress.value)
                     },
-                    onDrag = { change, _ ->
-                        val centerX = size.center.x
-                        val centerY = size.center.y
-                        val dx = change.position.x - centerX
-                        val dy = change.position.y - centerY
+                    onDrag = { change: PointerInputChange, _ ->
+                        val relX = change.position.x.toDouble() - halfSize.toDouble()
+                        val relY = change.position.y.toDouble() - halfSize.toDouble()
 
-                        // Calcular ángulo desde el centro (0 = arriba, en sentido horario)
-                        val angle = atan2(dy, -dx)
-                        // Normalizar a [0, 2π] con 0 en la posición superior
-                        var normalized = if (angle < 0) angle + (2 * PI) else angle
-                        // Ajustar: 0 en la parte superior (como las 12 en un reloj)
-                        normalized = (normalized - PI / 2 + 2 * PI) % (2 * PI)
-
-                        val newProgress = (normalized / (2 * PI)).toFloat()
+                        val angle = atan2(relY, -relX)
+                        var normalized: Double = if (angle < 0.0) angle + (2.0 * kotlin.math.PI) else angle
+                        val halfPI: Double = kotlin.math.PI / 2.0
+                        normalized = normalized - halfPI
+                        if (normalized < 0.0) normalized += 2.0 * kotlin.math.PI
+                        val newProgress = (normalized / (2.0 * kotlin.math.PI)).toFloat().coerceIn(0f, 1f)
                         dragProgress.value = newProgress
+                        change.consumeAllChanges()
                     }
                 )
             }
     ) {
         // Canvas: arco de fondo + progreso
         Canvas(modifier = Modifier.matchParentSize()) {
-            val radius = (dialSize.toPx() / 2f) - strokeWidthPx / 2f
+            val radius = with(density) { dialSize.toPx() / 2f } - strokeWidthPx / 2f
+            val center = Offset(size.width / 2f, size.height / 2f)
 
             // Track de fondo (completo)
             drawCircle(
                 color = trackColor,
-                center = Offset(center.x, center.y),
+                center = center,
                 radius = radius,
                 style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round)
             )
 
             // Arco de progreso
-            // El progreso del timer: 0.0 = empezando (arco al 100%)
-            // 1.0 = agotado (arco vacío)
             val progressAngle = 360f * (1f - progress.coerceIn(0f, 1f))
             drawArc(
                 color = progressColor,
-                startAngle = 90f, // comienza en la parte superior
+                startAngle = 90f,
                 sweepAngle = progressAngle,
                 useCenter = false,
                 style = Stroke(
@@ -151,14 +152,16 @@ fun CircularDial(
         }
 
         // Contenido central
-        androidx.compose.material3.Surface(
+        Box(
             modifier = Modifier
                 .size(140.dp)
                 .align(Alignment.Center),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+            ) {
                 Text(
                     text = currentTime,
                     style = MaterialTheme.typography.headlineMedium,
