@@ -4,48 +4,30 @@ package com.sq.susurros.service
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.media.AudioAttributes
 import android.os.Build
 import android.os.Handler
-import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.sq.susurros.R
+import com.sq.susurros.data.repository.MusicaRepository
+import com.sq.susurros.data.repository.VozRepository
 import com.sq.susurros.domain.state.PlaybackState
 import com.sq.susurros.domain.state.isPlaying
-import com.sq.susurros.domain.state.bookVolume
-import com.sq.susurros.domain.state.musicVolume
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * AudioPlaybackService — Foreground Service con Media3.
- *
- * Administra dos reproductores:
- * 1. mediaPlayer — TTS/libro (audio)
- * 2. musicPlayer — música de fondo
- *
- * El AudioStateManager orquesta los fades y crossfades entre ambos.
- */
 @AndroidEntryPoint
 @UnstableApi
 class AudioPlaybackService : MediaSessionService() {
@@ -59,42 +41,33 @@ class AudioPlaybackService : MediaSessionService() {
         const val ACTION_START = "com.sq.susurros.START"
         const val ACTION_STOP = "com.sq.susurros.STOP"
         const val ACTION_PLAY_PAUSE = "com.sq.susurros.PLAY_PAUSE"
-        const val ACTION_SKIP_NEXT = "com.sq.susurros.SKIP_NEXT"
-        const val ACTION_SKIP_PREVIOUS = "com.sq.susurros.SKIP_PREVIOUS"
     }
 
-    @Inject
-    lateinit var stateManager: AudioStateManager
+    @Inject lateinit var stateManager: AudioStateManager
+    @Inject lateinit var vozRepository: VozRepository
+    @Inject lateinit var musicaRepository: MusicaRepository
 
-    private var mediaPlayer: ExoPlayer? = null
     private var musicPlayer: ExoPlayer? = null
     private var mediaSession: MediaSession? = null
     private lateinit var notificationManager: NotificationManager
 
-    private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob() + Job())
+    private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val tickerHandler = Handler(Looper.getMainLooper())
     private var tickerRunnable: Runnable? = null
 
-    private var onStateChange: ((PlaybackState) -> Unit)? = null
+    private var sentences: List<String> = emptyList()
+    private var currentSentenceIndex: Int = 0
+    private var isReading: Boolean = false
 
     override fun onCreate() {
         super.onCreate()
         initPlayers()
         initMediaSession()
         initNotificationChannel()
+        initTts()
     }
 
     private fun initPlayers() {
-        mediaPlayer = ExoPlayer.Builder(this)
-            .setAudioAttributes(
-                androidx.media3.common.AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.CONTENT_TYPE_MUSIC)
-                    .build(),
-                true
-            )
-            .build()
-
         musicPlayer = ExoPlayer.Builder(this)
             .setAudioAttributes(
                 androidx.media3.common.AudioAttributes.Builder()
@@ -102,30 +75,35 @@ class AudioPlaybackService : MediaSessionService() {
                     .setContentType(C.CONTENT_TYPE_MUSIC)
                     .build(),
                 true
-            )
-            .build()
-
-        mediaPlayer?.volume = 1.0f
+            ).build()
         musicPlayer?.volume = 0.0f
     }
 
     private fun initMediaSession() {
-        mediaSession = MediaSession.Builder(this, mediaPlayer!!)
-            .build()
+        mediaSession = MediaSession.Builder(this, musicPlayer!!).build()
     }
 
     private fun initNotificationChannel() {
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Control de reproducción de SQ Susurros"
-            }
+            val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW)
             notificationManager.createNotificationChannel(channel)
         }
+    }
+
+    private fun initTts() {
+        vozRepository.initTts("es-ES") {
+            // Callback cuando el TTS está listo
+        }
+        vozRepository.setOnSentenceFinishedListener {
+            tickerHandler.post { onSentenceFinished() }
+        }
+        
+        // Mock de contenido
+        val bookMock = "La lectura inteligente del Lector 02 ya está activa. " +
+                "Esta es la segunda frase del libro. " +
+                "Esperamos que la música entre suavemente cuando el tiempo termine."
+        sentences = bookMock.split(Regex("(?<=[.!?])\\s+"))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -133,32 +111,85 @@ class AudioPlaybackService : MediaSessionService() {
             ACTION_START -> startForegroundPlayback()
             ACTION_STOP -> stopForegroundAndSelf()
             ACTION_PLAY_PAUSE -> playPause()
-            ACTION_SKIP_NEXT -> skipForward()
-            ACTION_SKIP_PREVIOUS -> skipBackward()
         }
-        return START_STICKY
+        return super.onStartCommand(intent, flags, startId)
     }
 
     private fun startForegroundPlayback() {
         startForeground(
-            NOTIFICATION_ID,
-            createNotification(),
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-            } else {
-                0
-            }
+            NOTIFICATION_ID, 
+            createNotification(), 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else 0
         )
 
         serviceScope.launch {
             stateManager.state.onEach { state ->
-                mediaPlayer?.volume = state.bookVolume
                 musicPlayer?.volume = state.musicVolume
-                onStateChange?.invoke(state)
+                handleStateTransitions(state)
             }.collectLatest {}
         }
 
         startTicker()
+    }
+
+    private fun handleStateTransitions(state: PlaybackState) {
+        when (state) {
+            is PlaybackState.Listening -> {
+                if (!isReading && state.isBookPlaying) startReading()
+            }
+            is PlaybackState.MusicFadeIn -> {
+                if (!(musicPlayer?.isPlaying ?: false)) playRandomMusic()
+            }
+            is PlaybackState.Idle -> {
+                isReading = false
+                vozRepository.stop()
+                musicPlayer?.pause()
+            }
+            is PlaybackState.BookResume -> {
+                if (!isReading) startReading()
+            }
+            else -> {}
+        }
+    }
+
+    private fun playRandomMusic() {
+        val track = musicaRepository.getRandomTrack()
+        if (track != null) {
+            val mediaItem = MediaItem.fromUri(track.absolutePath)
+            musicPlayer?.setMediaItem(mediaItem)
+            musicPlayer?.prepare()
+            musicPlayer?.play()
+        }
+    }
+
+    private fun startReading() {
+        if (isReading) return
+        isReading = true
+        readNextSentence()
+    }
+
+    private fun readNextSentence() {
+        val state = stateManager.state.value
+        if (!isReading || state is PlaybackState.Idle) return
+
+        if (currentSentenceIndex < sentences.size) {
+            val sentence = sentences[currentSentenceIndex]
+            vozRepository.speak(sentence, "sentence_$currentSentenceIndex")
+            currentSentenceIndex++
+        } else {
+            isReading = false
+            stateManager.stop()
+        }
+    }
+
+    private fun onSentenceFinished() {
+        val state = stateManager.state.value
+        // REGLA: Al agotarse el timer, detener lectura solo tras finalizar la frase actual.
+        if (state is PlaybackState.Listening && state.remaining <= 0) {
+            isReading = false
+        } else if (isReading) {
+            readNextSentence()
+        }
     }
 
     private fun startTicker() {
@@ -177,22 +208,17 @@ class AudioPlaybackService : MediaSessionService() {
     }
 
     private fun playPause() {
-        val currentState = stateManager.state.value
-        if (currentState is PlaybackState.Listening && currentState.isBookPlaying) {
+        val current = stateManager.state.value
+        if (current.isPlaying) {
             stateManager.pause()
-            mediaPlayer?.pause()
+            isReading = false
+            vozRepository.stop()
+            musicPlayer?.pause()
         } else {
             stateManager.resume()
-            mediaPlayer?.play()
+            if (current is PlaybackState.Listening) startReading()
+            if (current is PlaybackState.MusicPlaying) musicPlayer?.play()
         }
-    }
-
-    private fun skipForward() {
-        mediaPlayer?.seekTo((mediaPlayer?.currentPosition ?: 0L) + 10_000L)
-    }
-
-    private fun skipBackward() {
-        mediaPlayer?.seekTo((mediaPlayer?.currentPosition ?: 0L) - 10_000L)
     }
 
     private fun stopForegroundAndSelf() {
@@ -203,74 +229,22 @@ class AudioPlaybackService : MediaSessionService() {
     }
 
     private fun createNotification(): Notification {
-        val isPlaying = stateManager.state.value.isPlaying
-        val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-        val playPauseText = if (isPlaying) "Pausar" else "Reproducir"
-
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("SQ Susurros de Querubín")
-            .setContentText("Reproduciendo: Crónica de una Muerte Anunciada")
+            .setContentTitle("SQ Susurros")
+            .setContentText("Lector inteligente activo")
             .setSmallIcon(R.drawable.ic_notification)
-            .addAction(
-                R.drawable.ic_skip_previous,
-                "Anterior",
-                android.app.PendingIntent.getService(
-                    this, 2, Intent(this, AudioPlaybackService::class.java)
-                        .setAction(ACTION_SKIP_PREVIOUS),
-                    android.app.PendingIntent.FLAG_IMMUTABLE
-                )
-            )
-            .addAction(
-                playPauseIcon,
-                playPauseText,
-                android.app.PendingIntent.getService(
-                    this, 1, Intent(this, AudioPlaybackService::class.java)
-                        .setAction(ACTION_PLAY_PAUSE),
-                    android.app.PendingIntent.FLAG_IMMUTABLE
-                )
-            )
-            .addAction(
-                R.drawable.ic_skip_next,
-                "Siguiente",
-                android.app.PendingIntent.getService(
-                    this, 3, Intent(this, AudioPlaybackService::class.java)
-                        .setAction(ACTION_SKIP_NEXT),
-                    android.app.PendingIntent.FLAG_IMMUTABLE
-                )
-            )
             .setOngoing(true)
             .build()
     }
 
-    fun prepareBook(uriString: String, timerMs: Long) {
-        val mediaItem = MediaItem.fromUri(uriString)
-        mediaPlayer?.setMediaItem(mediaItem)
-        mediaPlayer?.prepare()
-        stateManager.startListening(bookPosition = 0L, timerMs = timerMs)
-    }
-
-    fun prepareMusic(uriString: String, durationMs: Long) {
-        val mediaItem = MediaItem.fromUri(uriString)
-        musicPlayer?.setMediaItem(mediaItem)
-        musicPlayer?.prepare()
-    }
-
-    fun setOnStateChangeListener(listener: (PlaybackState) -> Unit) {
-        this.onStateChange = listener
-    }
-
-    override fun onBind(p0: Intent?): IBinder? = null
-
-    override fun onGetSession(controllerInfo: androidx.media3.session.MediaSession.ControllerInfo): MediaSession? {
-        return mediaSession
-    }
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onDestroy() {
         stopTicker()
         serviceScope.cancel()
         mediaSession?.release()
-        mediaPlayer?.release()
         musicPlayer?.release()
+        vozRepository.release()
         super.onDestroy()
     }
 }

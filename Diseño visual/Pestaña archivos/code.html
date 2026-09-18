@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Archivos de Música - SQ</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed": "#b8f600",
+                      "primary": "#ffffff",
+                      "on-background": "#dbe2fd",
+                      "on-primary-fixed": "#141f00",
+                      "on-tertiary-fixed-variant": "#444173",
+                      "on-tertiary-fixed": "#181445",
+                      "on-error": "#690005",
+                      "on-surface": "#DAE2FD",
+                      "tertiary-container": "#e3dfff",
+                      "tertiary-fixed": "#e3dfff",
+                      "surface-dim": "#0b1326",
+                      "on-error-container": "#ffdad6",
+                      "surface-container": "#171f33",
+                      "surface-tint": "#a1d800",
+                      "surface-bright": "#31394D",
+                      "on-tertiary": "#2d2a5b",
+                      "primary-container": "#b8f600",
+                      "secondary": "#d2bbff",
+                      "inverse-primary": "#4b6700",
+                      "on-secondary-fixed-variant": "#4f3c76",
+                      "on-surface-variant": "#C3CAAD",
+                      "surface-container-low": "#131b2e",
+                      "outline-variant": "#434933",
+                      "on-primary": "#253500",
+                      "on-tertiary-container": "#615f93",
+                      "inverse-surface": "#dbe2fd",
+                      "surface-variant": "#2d3449",
+                      "success": "#BEFF00",
+                      "on-secondary": "#38255e",
+                      "secondary-fixed-dim": "#d2bbff",
+                      "tertiary": "#ffffff",
+                      "surface-container-highest": "#2d3449",
+                      "secondary-container": "#523e79",
+                      "error-container": "#93000a",
+                      "inverse-on-surface": "#283044",
+                      "on-primary-container": "#506e00",
+                      "on-secondary-container": "#c4adf0",
+                      "tertiary-fixed-dim": "#c4c1fb",
+                      "surface-container-lowest": "#060d20",
+                      "on-secondary-fixed": "#230e48",
+                      "on-primary-fixed-variant": "#384e00",
+                      "outline": "#8D9479",
+                      "error": "#FFB4AB",
+                      "primary-fixed-dim": "#a1d800",
+                      "secondary-fixed": "#eaddff",
+                      "surface": "#0B1326",
+                      "surface-container-high": "#222a3e",
+                      "background": "#0b1326"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "base-unit": "8px",
+                      "margin-page": "2rem",
+                      "stack-sm": "0.5rem",
+                      "gutter": "1rem",
+                      "stack-md": "1rem",
+                      "stack-xl": "48px",
+                      "container-padding": "1.5rem",
+                      "margin-page-mobile": "16px",
+                      "margin-page-desktop": "32px",
+                      "stack-lg": "2rem"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": ["Inter"],
+                      "label-md": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-md": ["Inter"],
+                      "label-sm": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                      "label-md": ["14px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                      "headline-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                      "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                      "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                      "label-sm": ["12px", { "lineHeight": "1", "fontWeight": "500" }]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2d3449; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #434933; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-dim text-on-surface font-sans min-h-screen pb-[120px]">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface fixed top-0 w-full z-50 flex justify-between items-center px-margin-page-mobile pt-10 pb-4 shadow-sm bg-surface-container-high dark:bg-surface-container-high">
+<button class="text-primary-fixed dark:text-primary-fixed hover:bg-surface-bright/10 transition-colors rounded-full p-2 active:scale-95 duration-150 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">face_6</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary-fixed dark:text-primary-fixed tracking-tight">
+            SQ Susurros de Querubín
+        </h1>
+<button class="text-primary-fixed dark:text-primary-fixed hover:bg-surface-bright/10 transition-colors rounded-full p-2 active:scale-95 duration-150 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">search</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="px-margin-page-mobile pt-[110px] flex flex-col gap-stack-lg max-w-4xl mx-auto">
+<!-- 1. Banner Publicitario -->
+<section class="w-full rounded-xl overflow-hidden relative aspect-[21/9] bg-surface-container-low border border-outline-variant/30 group cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
+<div class="absolute top-2 right-2 bg-surface-dim/80 backdrop-blur-sm px-2 py-1 rounded font-label-sm text-label-sm text-on-surface-variant z-10 uppercase">Ad</div>
+<img class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" data-alt="A highly stylized, dark-mode abstract digital composition featuring glowing neon lime and deep purple waveforms intertwining in a vast, dark digital space. The lighting is dramatic, high-contrast, and cinematic, emphasizing a modern, professional, high-fidelity audio aesthetic. The background is a profound, noise-free abyssal black, reflecting a premium technological environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsf61BGCrjq7m8hxCxUEHYQU__wXMz76RrHzbnCQrTQKCARhwO3R5nwPAqn4FvAK1TjOGsmU3Wg4d8fNkaquQVeUolyGICF1Fruz4_vmr4k5QVqF__D-3EGZfbS32NIUCFO2OyVYORqTFE0oF_taYLG10frA6HkC-tVdYXezlVYUfLL-kIziLoGNOSKGxTEyu5_hOUUXBLMUnXjoJ7yVkn48SAjqCRY3sMF0_19_38ERoXXKzVZf9u8-z-8raVdzzoKyYUZNVkG1g"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-dim via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4">
+<p class="font-headline-md text-headline-md text-primary font-bold drop-shadow-lg">Auriculares SQ Pro</p>
+<p class="font-body-md text-body-md text-on-surface/80">Siente el grave.</p>
+</div>
+</section>
+<!-- 2. Explorador de Archivos Locales -->
+<section class="flex flex-col gap-stack-sm">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md text-primary">Archivos Locales</h2>
+<span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full font-label-sm text-label-sm tracking-widest uppercase">Scanner</span>
+</div>
+<button class="w-full bg-[#1E1B4B] hover:bg-surface-bright border border-outline-variant hover:border-primary-fixed transition-all duration-300 rounded-xl p-stack-md flex flex-col items-center justify-center gap-2 group shadow-sm">
+<div class="bg-surface-dim p-3 rounded-full group-hover:bg-primary-fixed/20 transition-colors">
+<span class="material-symbols-outlined text-primary-fixed text-3xl">manage_search</span>
+</div>
+<p class="font-label-md text-label-md text-primary">Buscar archivos MP3 / M4A</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm text-center">Explora el almacenamiento de tu dispositivo</p>
+</button>
+</section>
+<!-- 5. Mensaje Random -->
+<section class="bg-secondary-container/10 border border-secondary/20 rounded-xl p-stack-md flex items-start gap-3 relative overflow-hidden">
+<div class="absolute -right-4 -top-4 opacity-5 pointer-events-none">
+<span class="material-symbols-outlined text-9xl text-secondary">shuffle</span>
+</div>
+<span class="material-symbols-outlined text-secondary mt-1 shrink-0">info</span>
+<div class="flex flex-col gap-1 z-10">
+<p class="font-label-md text-label-md text-secondary-fixed">Modo de Reproducción Automática</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">
+                    La música seleccionada se guardará en tu carpeta interna y se añadirá a una cola de reproducción <strong>aleatoria (Random)</strong> para garantizar variedad.
+                </p>
+</div>
+</section>
+<!-- 3. Lista de Canciones -->
+<section class="flex flex-col gap-2">
+<div class="flex justify-between items-center mb-2 px-1">
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Resultados (4)</p>
+<label class="flex items-center gap-2 cursor-pointer group">
+<span class="font-label-md text-label-md text-on-surface group-hover:text-primary-fixed transition-colors">Seleccionar Todo</span>
+<div class="relative flex items-center justify-center">
+<input class="peer sr-only" type="checkbox"/>
+<div class="w-5 h-5 rounded border-2 border-outline-variant peer-checked:bg-primary-fixed peer-checked:border-primary-fixed transition-all flex items-center justify-center group-hover:border-primary-fixed/50">
+<span class="material-symbols-outlined text-[14px] text-on-primary-fixed opacity-0 peer-checked:opacity-100 font-bold">check</span>
+</div>
+</div>
+</label>
+</div>
+<!-- List Items -->
+<div class="flex flex-col gap-2">
+<!-- Item 1 -->
+<label class="flex items-center gap-4 bg-surface-container hover:bg-surface-container-high transition-colors p-3 rounded-xl cursor-pointer group border border-transparent hover:border-surface-bright">
+<div class="relative flex items-center justify-center shrink-0">
+<input checked="" class="peer sr-only" type="checkbox"/>
+<div class="w-5 h-5 rounded border-2 border-outline-variant peer-checked:bg-primary-fixed peer-checked:border-primary-fixed transition-all flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-on-primary-fixed opacity-0 peer-checked:opacity-100 font-bold">check</span>
+</div>
+</div>
+<div class="bg-surface-dim p-2 rounded-lg text-primary-fixed shrink-0">
+<span class="material-symbols-outlined">audio_file</span>
+</div>
+<div class="flex flex-col flex-grow min-w-0">
+<p class="font-label-md text-label-md text-primary truncate">Neon Nights_Mix_Final.mp3</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm truncate">9.4 MB • /Descargas/Music</p>
+</div>
+</label>
+<!-- Item 2 -->
+<label class="flex items-center gap-4 bg-surface-container hover:bg-surface-container-high transition-colors p-3 rounded-xl cursor-pointer group border border-transparent hover:border-surface-bright">
+<div class="relative flex items-center justify-center shrink-0">
+<input checked="" class="peer sr-only" type="checkbox"/>
+<div class="w-5 h-5 rounded border-2 border-outline-variant peer-checked:bg-primary-fixed peer-checked:border-primary-fixed transition-all flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-on-primary-fixed opacity-0 peer-checked:opacity-100 font-bold">check</span>
+</div>
+</div>
+<div class="bg-surface-dim p-2 rounded-lg text-primary-fixed shrink-0">
+<span class="material-symbols-outlined">audio_file</span>
+</div>
+<div class="flex flex-col flex-grow min-w-0">
+<p class="font-label-md text-label-md text-primary truncate">Bass_Drop_Session_04.m4a</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm truncate">12.1 MB • /Bluetooth</p>
+</div>
+</label>
+<!-- Item 3 -->
+<label class="flex items-center gap-4 bg-surface-container hover:bg-surface-container-high transition-colors p-3 rounded-xl cursor-pointer group border border-transparent hover:border-surface-bright">
+<div class="relative flex items-center justify-center shrink-0">
+<input class="peer sr-only" type="checkbox"/>
+<div class="w-5 h-5 rounded border-2 border-outline-variant peer-checked:bg-primary-fixed peer-checked:border-primary-fixed transition-all flex items-center justify-center group-hover:border-primary-fixed/50">
+<span class="material-symbols-outlined text-[14px] text-on-primary-fixed opacity-0 peer-checked:opacity-100 font-bold">check</span>
+</div>
+</div>
+<div class="bg-surface-dim p-2 rounded-lg text-on-surface-variant shrink-0 group-hover:text-primary-fixed transition-colors">
+<span class="material-symbols-outlined">audio_file</span>
+</div>
+<div class="flex flex-col flex-grow min-w-0">
+<p class="font-label-md text-label-md text-primary truncate">Voice_Memo_12.m4a</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm truncate">1.2 MB • /Grabaciones</p>
+</div>
+</label>
+<!-- Item 4 -->
+<label class="flex items-center gap-4 bg-surface-container hover:bg-surface-container-high transition-colors p-3 rounded-xl cursor-pointer group border border-transparent hover:border-surface-bright">
+<div class="relative flex items-center justify-center shrink-0">
+<input checked="" class="peer sr-only" type="checkbox"/>
+<div class="w-5 h-5 rounded border-2 border-outline-variant peer-checked:bg-primary-fixed peer-checked:border-primary-fixed transition-all flex items-center justify-center group-hover:border-primary-fixed/50">
+<span class="material-symbols-outlined text-[14px] text-on-primary-fixed opacity-0 peer-checked:opacity-100 font-bold">check</span>
+</div>
+</div>
+<div class="bg-surface-dim p-2 rounded-lg text-primary-fixed shrink-0">
+<span class="material-symbols-outlined">audio_file</span>
+</div>
+<div class="flex flex-col flex-grow min-w-0">
+<p class="font-label-md text-label-md text-primary truncate">Podcast_Tech_Weekly.mp3</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm truncate">45.0 MB • /Podcasts</p>
+</div>
+</label>
+</div>
+</section>
+<!-- 4. Botón Guardar -->
+<div class="mt-4">
+<button class="w-full bg-primary-fixed text-on-primary-fixed font-label-md text-label-md py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-primary-fixed-dim transition-colors shadow-[0_0_15px_rgba(184,246,0,0.2)] active:scale-[0.98]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">save</span>
+                Guardar en carpeta Música (3)
+            </button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 pb-safe rounded-t-xl bg-surface-container dark:bg-surface-container shadow-[0_-4px_20px_rgba(0,0,0,0.15)] bg-surface-container-high dark:bg-surface-container-high">
+<!-- Inactive: Biblioteca -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-70 hover:text-primary-fixed transition-all">
+<span class="material-symbols-outlined mb-1">library_books</span>
+<span class="font-label-sm text-label-sm uppercase tracking-widest">Biblioteca</span>
+</button>
+<!-- Inactive: Reproductor -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-70 hover:text-primary-fixed transition-all">
+<span class="material-symbols-outlined mb-1">play_circle</span>
+<span class="font-label-sm text-label-sm uppercase tracking-widest">Reproductor</span>
+</button>
+<!-- Active: Archivos -->
+<button class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-container text-on-primary-container rounded-full px-4 py-1 scale-90 duration-200 ease-in-out">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">folder</span>
+<span class="font-label-sm text-label-sm uppercase tracking-widest">Archivos</span>
+</button>
+<!-- Inactive: Perfil -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-70 hover:text-primary-fixed transition-all">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-label-sm text-label-sm uppercase tracking-widest">Perfil</span>
+</button>
+</nav>
+</body></html>

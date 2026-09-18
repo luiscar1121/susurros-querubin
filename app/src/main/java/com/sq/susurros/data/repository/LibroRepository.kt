@@ -2,123 +2,100 @@
 package com.sq.susurros.data.repository
 
 import android.content.ContentResolver
-import android.content.ContentValues
-import android.content.Intent
+import android.content.Context
 import android.net.Uri
-import android.provider.MediaStore
+import android.provider.OpenableColumns
 import com.sq.susurros.data.model.BookData
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import javax.inject.Inject
 
 /**
- * LibroRepository — Gestión de libros (PDF, ePub, audiolibros) via MediaStore y SAF.
- *
- * - Escaneo: usa MediaStore para encontrar PDF/EPUB/audio.
- * - Selección: usa Storage Access Framework (ACTION_OPEN_DOCUMENT).
- * - Persistencia: Room para metadatos del libro actual.
+ * LibroRepository — Gestión de libros (PDF, ePub) para Lector 02.
  */
 class LibroRepository @Inject constructor(
-    private val contentResolver: ContentResolver
+    private val contentResolver: ContentResolver,
+    @ApplicationContext private val context: Context
 ) {
 
+    private val booksDir: File by lazy {
+        File(context.getExternalFilesDir(null), "Libros").apply { mkdirs() }
+    }
+
     /**
-     * Escanea el dispositivo en busca de libros (PDF, ePub, audiolibros).
-     * Usa MediaStore con proyecciones específicas.
+     * Escanea la carpeta interna de la app en busca de libros guardados.
      */
     fun scanBooks(): List<BookData> {
         val books = mutableListOf<BookData>()
+        val files = booksDir.listFiles() ?: return emptyList()
 
-        // Escanear PDF
-        val pdfProjection = arrayOf(
-            MediaStore.Files.FileColumns._ID,
-            MediaStore.Files.FileColumns.DISPLAY_NAME,
-            MediaStore.Files.FileColumns.DATA,
-            MediaStore.Files.FileColumns.SIZE,
-            MediaStore.Files.FileColumns.MIME_TYPE
-        )
-
-        val pdfSelection = "${MediaStore.Files.FileColumns.MIME_TYPE} = ? OR " +
-            "${MediaStore.Files.FileColumns.MIME_TYPE} = ?"
-        val pdfArgs = arrayOf("application/pdf", "application/epub+zip")
-
-        val collection = MediaStore.Files.getContentUri(
-            MediaStore.VOLUME_EXTERNAL_PRIMARY
-        )
-
-        contentResolver.query(
-            collection,
-            pdfProjection,
-            pdfSelection,
-            pdfArgs,
-            null
-        )?.use { cursor ->
-            val idIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
-            val nameIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
-            val dataIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA)
-            val sizeIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
-            val mimeIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)
-
-            while (cursor.moveToNext()) {
-                val id = cursor.getLong(idIndex)
-                val title = cursor.getString(nameIndex)
-                val path = cursor.getString(dataIndex)
-                val size = cursor.getLong(sizeIndex)
-                val mime = cursor.getString(mimeIndex)
-
-                val fileType = when (mime) {
-                    "application/pdf" -> BookData.FileType.PDF
-                    "application/epub+zip" -> BookData.FileType.EPUB
-                    else -> BookData.FileType.AUDIOBOOK
-                }
-
-                val uri = Uri.withAppendedPath(collection, id.toString())
-
-                books.add(
-                    BookData(
-                        id = id,
-                        title = title,
-                        author = null, // extraer de metadatos según tipo
-                        uri = uri,
-                        filePath = path,
-                        fileSize = size,
-                        durationMs = null,
-                        fileType = fileType
-                    )
-                )
+        files.forEachIndexed { index, file ->
+            val type = when (file.extension.lowercase()) {
+                "pdf" -> BookData.FileType.PDF
+                "epub" -> BookData.FileType.EPUB
+                else -> BookData.FileType.AUDIOBOOK
             }
+            books.add(
+                BookData(
+                    id = index.toLong(),
+                    title = file.nameWithoutExtension,
+                    author = "Autor Desconocido",
+                    uri = Uri.fromFile(file),
+                    filePath = file.absolutePath,
+                    fileSize = file.length(),
+                    durationMs = 1_200_000L, // 20m default
+                    fileType = type
+                )
+            )
         }
-
         return books
     }
 
     /**
-     * Permite al usuario seleccionar un archivo vía SAF.
-     * Devuelve el URI del archivo seleccionado.
-     * (La Activity debe lanzar ACTION_OPEN_DOCUMENT y recibir el resultado.)
+     * Guarda un libro seleccionado vía SAF en la carpeta interna.
      */
-    fun createOpenDocumentIntent(): Intent {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf(
-                "application/pdf",
-                "application/epub+zip",
-                "audio/*"
-            ))
+    fun saveBookToInternal(uri: Uri): BookData? {
+        return try {
+            val fileName = getFileName(uri) ?: "libro_${System.currentTimeMillis()}.pdf"
+            val destFile = File(booksDir, fileName)
+            
+            contentResolver.openInputStream(uri)?.use { input ->
+                destFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            BookData(
+                id = System.currentTimeMillis(),
+                title = destFile.nameWithoutExtension,
+                author = "Importado",
+                uri = Uri.fromFile(destFile),
+                filePath = destFile.absolutePath,
+                fileSize = destFile.length(),
+                durationMs = 1_200_000L,
+                fileType = if (destFile.extension.lowercase() == "epub") BookData.FileType.EPUB else BookData.FileType.PDF
+            )
+        } catch (e: Exception) {
+            null
         }
-        return intent
     }
 
-    /**
-     * Elimina un libro de la lista (marca como no-visble o elimina).
-     */
+    private fun getFileName(uri: Uri): String? {
+        var name: String? = null
+        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (index != -1) name = cursor.getString(index)
+            }
+        }
+        return name
+    }
+
     fun deleteBook(bookId: Long) {
-        val collection = MediaStore.Files.getContentUri(
-            MediaStore.VOLUME_EXTERNAL_PRIMARY
-        )
-        contentResolver.delete(
-            Uri.withAppendedPath(collection, bookId.toString()),
-            null,
-            null
-        )
+        // En esta versión simple, borrar por ID requiere mapeo o borrar por archivo
+        val books = scanBooks()
+        books.find { it.id == bookId }?.let {
+            File(it.filePath).delete()
+        }
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
@@ -152,32 +153,26 @@ fun CircularDial(
         }
 
         // Contenido central
-        Box(
+        Column(
             modifier = Modifier
-                .size(140.dp)
                 .align(Alignment.Center),
-            contentAlignment = Alignment.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-            ) {
-                Text(
-                    text = currentTime,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = fontSizeCurrent
-                )
-                androidx.compose.material3.Text(
-                    text = remainingTime,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = fontSizeRemaining,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
+            Text(
+                text = currentTime,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = fontSizeCurrent
+            )
+            Text(
+                text = remainingTime,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = fontSizeRemaining,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }

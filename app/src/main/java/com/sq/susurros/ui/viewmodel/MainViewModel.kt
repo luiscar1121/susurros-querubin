@@ -3,6 +3,7 @@ package com.sq.susurros.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sq.susurros.data.repository.LibroRepository
 import com.sq.susurros.domain.state.PlaybackState
 import com.sq.susurros.ui.state.MainUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,31 +14,30 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * MainViewModel — expone un único StateFlow<MainUiState> reactivo.
- *
- * Lee el estado de AudioStateManager (servicio) y lo combina con la
- * configuración del timer para emitir MainUiState a la UI.
- *
- * Nota: El acceso directo al AudioStateManager del servicio requiere
- * un enlace (ServiceConnection). Aquí se expone una referencia simple.
- */
 @HiltViewModel
-class MainViewModel @Inject constructor() : ViewModel() {
+class MainViewModel @Inject constructor(
+    private val libroRepository: LibroRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState.Initial)
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     init {
-        // Escuchar cambios del estado de reproducción (simulado desde ViewModel)
+        loadBooks()
+    }
+
+    private fun loadBooks() {
         viewModelScope.launch {
-            // En la implementación completa, esto conectaría con el servicio
-            // via ServiceConnection o un repository compartido.
+            try {
+                val books = libroRepository.scanBooks()
+                _uiState.update { it.copy(books = books) }
+            } catch (e: Exception) {
+                // Log error
+            }
         }
     }
 
     fun onPlayPause() {
-        // En implementación completa: comunicar al servicio
         _uiState.update { current ->
             if (current.isPlaying) {
                 current.copy(
@@ -67,10 +67,19 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     fun onSelectListenTime(tierIndex: Int) {
         val times = listOf(60 * 60_000L, 45 * 60_000L, 30 * 60_000L, 20 * 60_000L)
-        _uiState.update {
-            it.copy(
-                activeTimerMs = times[tierIndex],
-                listenTimeTier = tierIndex
+        val selectedTime = times[tierIndex]
+        _uiState.update { current ->
+            val newState = when (val ps = current.playbackState) {
+                is PlaybackState.Listening -> ps.copy(
+                    remaining = selectedTime,
+                    activeTimer = selectedTime
+                )
+                else -> ps
+            }
+            current.copy(
+                activeTimerMs = selectedTime,
+                listenTimeTier = tierIndex,
+                playbackState = newState
             )
         }
     }
@@ -89,18 +98,12 @@ class MainViewModel @Inject constructor() : ViewModel() {
         _uiState.update { it.copy(volume = volume) }
     }
 
-    fun updatePlaybackState(newState: PlaybackState) {
-        _uiState.update {
-            it.copy(playbackState = newState)
-        }
-    }
-
     fun setBookInfo(title: String, author: String, duration: Long) {
         _uiState.update {
             it.copy(
                 bookTitle = title,
                 bookAuthor = author,
-                bookDurationMs = duration
+                bookDurationMs = if (duration > 0) duration else 1_200_000L // 20m default if zero
             )
         }
     }
