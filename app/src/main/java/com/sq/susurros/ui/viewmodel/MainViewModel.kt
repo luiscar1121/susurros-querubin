@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.util.UnstableApi
 import com.sq.susurros.data.repository.LibroRepository
 import com.sq.susurros.domain.state.PlaybackState
 import com.sq.susurros.domain.state.isPlaying
@@ -17,7 +18,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.media3.common.util.UnstableApi
 import javax.inject.Inject
 
 @HiltViewModel
@@ -56,9 +56,14 @@ class MainViewModel @Inject constructor(
 
     @UnstableApi
     fun onPlayPause() {
-        // Asegurar que el servicio está iniciado
+        val currentPath = uiState.value.currentBookPath
+        
+        // Asegurar que el servicio está iniciado y pasar el path del libro si existe
         val intent = Intent(context, AudioPlaybackService::class.java).apply {
             action = AudioPlaybackService.ACTION_START
+            if (currentPath != null) {
+                putExtra(AudioPlaybackService.EXTRA_BOOK_PATH, currentPath)
+            }
         }
         context.startForegroundService(intent)
 
@@ -107,12 +112,13 @@ class MainViewModel @Inject constructor(
         _uiState.update { it.copy(volume = volume) }
     }
 
-    fun setBookInfo(title: String, author: String, duration: Long) {
+    fun setBookInfo(title: String, author: String, duration: Long, path: String? = null) {
         _uiState.update {
             it.copy(
                 bookTitle = title,
                 bookAuthor = author,
-                bookDurationMs = if (duration > 0) duration else 1_200_000L
+                bookDurationMs = if (duration > 0) duration else 1_200_000L,
+                currentBookPath = path
             )
         }
     }

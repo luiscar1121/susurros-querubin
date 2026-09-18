@@ -9,6 +9,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -18,6 +19,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.sq.susurros.R
+import com.sq.susurros.data.repository.LibroRepository
 import com.sq.susurros.data.repository.MusicaRepository
 import com.sq.susurros.data.repository.VozRepository
 import com.sq.susurros.domain.state.PlaybackState
@@ -26,6 +28,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onEach
+import java.io.File
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -41,11 +44,14 @@ class AudioPlaybackService : MediaSessionService() {
         const val ACTION_START = "com.sq.susurros.START"
         const val ACTION_STOP = "com.sq.susurros.STOP"
         const val ACTION_PLAY_PAUSE = "com.sq.susurros.PLAY_PAUSE"
+        
+        const val EXTRA_BOOK_PATH = "extra_book_path"
     }
 
     @Inject lateinit var stateManager: AudioStateManager
     @Inject lateinit var vozRepository: VozRepository
     @Inject lateinit var musicaRepository: MusicaRepository
+    @Inject lateinit var libroRepository: LibroRepository
 
     private var musicPlayer: ExoPlayer? = null
     private var mediaSession: MediaSession? = null
@@ -61,6 +67,7 @@ class AudioPlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.d("AudioService", "Servicio iniciado - onCreate")
         initPlayers()
         initMediaSession()
         initNotificationChannel()
@@ -93,26 +100,46 @@ class AudioPlaybackService : MediaSessionService() {
 
     private fun initTts() {
         vozRepository.initTts("es-ES") {
-            // Callback cuando el TTS está listo
+            Log.d("AudioService", "TTS Motor Preparado")
+            if (sentences.isNotEmpty() && isReading) {
+                readNextSentence()
+            }
         }
         vozRepository.setOnSentenceFinishedListener {
             tickerHandler.post { onSentenceFinished() }
         }
-        
-        // Mock de contenido
-        val bookMock = "La lectura inteligente del Lector 02 ya está activa. " +
-                "Esta es la segunda frase del libro. " +
-                "Esperamos que la música entre suavemente cuando el tiempo termine."
-        sentences = bookMock.split(Regex("(?<=[.!?])\\s+"))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d("AudioService", "onStartCommand: ${intent?.action}")
         when (intent?.action) {
-            ACTION_START -> startForegroundPlayback()
+            ACTION_START -> {
+                val bookPath = intent.getStringExtra(EXTRA_BOOK_PATH)
+                if (bookPath != null) loadBookContent(bookPath)
+                startForegroundPlayback()
+            }
             ACTION_STOP -> stopForegroundAndSelf()
             ACTION_PLAY_PAUSE -> playPause()
         }
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun loadBookContent(path: String) {
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                val file = File(path)
+                if (file.exists()) {
+                    val text = libroRepository.extractTextFromPdf(file)
+                    withContext(Dispatchers.Main) {
+                        sentences = text.split(Regex("(?<=[.!?])\\s+")).filter { it.isNotBlank() }
+                        currentSentenceIndex = 0
+                        Log.d("AudioService", "Texto cargado: ${sentences.size} frases")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AudioService", "Error cargando libro", e)
+            }
+        }
     }
 
     private fun startForegroundPlayback() {
@@ -123,10 +150,10 @@ class AudioPlaybackService : MediaSessionService() {
         )
 
         serviceScope.launch {
-            stateManager.state.onEach { state ->
+            stateManager.state.collectLatest { state ->
                 musicPlayer?.volume = state.musicVolume
                 handleStateTransitions(state)
-            }.collectLatest {}
+            }
         }
 
         startTicker()
@@ -135,18 +162,12 @@ class AudioPlaybackService : MediaSessionService() {
     private fun handleStateTransitions(state: PlaybackState) {
         when (state) {
             is PlaybackState.Listening -> {
-                if (!isReading && state.isBookPlaying) startReading()
-            }
-            is PlaybackState.MusicFadeIn -> {
-                if (!(musicPlayer?.isPlaying ?: false)) playRandomMusic()
+                if (state.isBookPlaying && !isReading) startReading()
+                else if (!state.isBookPlaying && isReading) pauseReading()
             }
             is PlaybackState.Idle -> {
-                isReading = false
-                vozRepository.stop()
+                stopReading()
                 musicPlayer?.pause()
-            }
-            is PlaybackState.BookResume -> {
-                if (!isReading) startReading()
             }
             else -> {}
         }
@@ -163,28 +184,37 @@ class AudioPlaybackService : MediaSessionService() {
     }
 
     private fun startReading() {
-        if (isReading) return
+        if (sentences.isEmpty()) return
         isReading = true
         readNextSentence()
     }
 
+    private fun pauseReading() {
+        isReading = false
+        vozRepository.stop()
+    }
+
+    private fun stopReading() {
+        isReading = false
+        currentSentenceIndex = 0
+        vozRepository.stop()
+    }
+
     private fun readNextSentence() {
-        val state = stateManager.state.value
-        if (!isReading || state is PlaybackState.Idle) return
+        if (!isReading || stateManager.state.value is PlaybackState.Idle) return
 
         if (currentSentenceIndex < sentences.size) {
             val sentence = sentences[currentSentenceIndex]
             vozRepository.speak(sentence, "sentence_$currentSentenceIndex")
             currentSentenceIndex++
         } else {
-            isReading = false
+            stopReading()
             stateManager.stop()
         }
     }
 
     private fun onSentenceFinished() {
         val state = stateManager.state.value
-        // REGLA: Al agotarse el timer, detener lectura solo tras finalizar la frase actual.
         if (state is PlaybackState.Listening && state.remaining <= 0) {
             isReading = false
         } else if (isReading) {
@@ -208,21 +238,12 @@ class AudioPlaybackService : MediaSessionService() {
     }
 
     private fun playPause() {
-        val current = stateManager.state.value
-        if (current.isPlaying) {
-            stateManager.pause()
-            isReading = false
-            vozRepository.stop()
-            musicPlayer?.pause()
-        } else {
-            stateManager.resume()
-            if (current is PlaybackState.Listening) startReading()
-            if (current is PlaybackState.MusicPlaying) musicPlayer?.play()
-        }
+        // La lógica real ahora la maneja el stateManager, nosotros solo reaccionamos al Flow en handleStateTransitions
     }
 
     private fun stopForegroundAndSelf() {
         stopTicker()
+        stopReading()
         stateManager.stop()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -231,7 +252,7 @@ class AudioPlaybackService : MediaSessionService() {
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("SQ Susurros")
-            .setContentText("Lector inteligente activo")
+            .setContentText("Reproducción activa")
             .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(true)
             .build()
@@ -240,6 +261,7 @@ class AudioPlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onDestroy() {
+        Log.d("AudioService", "Service onDestroy")
         stopTicker()
         serviceScope.cancel()
         mediaSession?.release()

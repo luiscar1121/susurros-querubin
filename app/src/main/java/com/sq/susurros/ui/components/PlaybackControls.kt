@@ -22,56 +22,44 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun PlaybackControls(
     isPlaying: Boolean,
-    volume: Float,
+    volume: Float, // Mantener parámetro por compatibilidad con ViewModel pero no usar Slider
     onPlayPause: () -> Unit,
     onSkipForward: () -> Unit,
     onSkipBackward: () -> Unit,
     onVolumeChange: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    // Fila de Controles centralizada: Atras 10s — Play/Pause — Adelante 10s
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp), // Reducido de 16dp
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp) // Reducido de 20dp
+            .padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Slider de volumen
-        VolumeSlider(
-            volume = volume,
-            onVolumeChange = onVolumeChange
+        // Botón de retroceso 10s
+        SeekControl(
+            label = "Atras",
+            icon = Icons.Default.Replay10,
+            onClick = onSkipBackward
         )
 
-        // Fila de Controles: Atras 10s — Play/Pause — Adelante 10s
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Botón de retroceso 10s
-            SeekControl(
-                label = "Atras",
-                icon = Icons.Default.Replay10,
-                onClick = onSkipBackward
-            )
+        Spacer(modifier = Modifier.width(48.dp))
 
-            Spacer(modifier = Modifier.width(32.dp)) // Reducido de 40dp
+        // Botón central Play/Pause
+        LargePlayButton(
+            isPlaying = isPlaying,
+            onClick = onPlayPause
+        )
 
-            // Botón central Play/Pause
-            LargePlayButton(
-                isPlaying = isPlaying,
-                onClick = onPlayPause
-            )
+        Spacer(modifier = Modifier.width(48.dp))
 
-            Spacer(modifier = Modifier.width(32.dp)) // Reducido de 40dp
-
-            // Botón de adelanto 10s
-            SeekControl(
-                label = "Adelante",
-                icon = Icons.Default.Forward10,
-                onClick = onSkipForward
-            )
-        }
+        // Botón de adelanto 10s
+        SeekControl(
+            label = "Adelante",
+            icon = Icons.Default.Forward10,
+            onClick = onSkipForward
+        )
     }
 }
 
@@ -82,7 +70,7 @@ private fun LargePlayButton(
 ) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.size(64.dp), // Reducido de 72dp
+        modifier = Modifier.size(72.dp),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.primary,
         shadowElevation = 6.dp
@@ -92,7 +80,7 @@ private fun LargePlayButton(
                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                 contentDescription = if (isPlaying) "Pausar" else "Reproducir",
                 tint = Color.Black,
-                modifier = Modifier.size(36.dp) // Reducido de 40dp
+                modifier = Modifier.size(40.dp)
             )
         }
     }
@@ -106,11 +94,11 @@ private fun SeekControl(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp) // Reducido de 6dp
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Surface(
             onClick = onClick,
-            modifier = Modifier.size(48.dp), // Reducido de 56dp
+            modifier = Modifier.size(52.dp),
             shape = CircleShape,
             color = Color(0xFF1E1B4B),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
@@ -120,7 +108,7 @@ private fun SeekControl(
                     imageVector = icon,
                     contentDescription = label,
                     tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(24.dp) // Reducido de 28dp
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }
@@ -128,55 +116,8 @@ private fun SeekControl(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 9.sp, // Reducido de 11sp
+            fontSize = 10.sp,
             fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-private fun VolumeSlider(
-    volume: Float,
-    onVolumeChange: (Float) -> Unit
-) {
-    val volumeState = remember { mutableStateOf(volume) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(Icons.AutoMirrored.Filled.VolumeMute, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-            Slider(
-                value = volumeState.value,
-                onValueChange = {
-                    volumeState.value = it
-                    onVolumeChange(it)
-                },
-                valueRange = 0f..1f,
-                colors = SliderDefaults.colors(
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    thumbColor = MaterialTheme.colorScheme.primary
-                ),
-                modifier = Modifier.weight(1f).height(24.dp) // Altura limitada
-            )
-            Icon(Icons.AutoMirrored.Filled.VolumeUp, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-        }
-
-        Text(
-            text = "VOLUMEN",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 9.sp, // Reducido de 10sp
-            letterSpacing = 1.sp,
-            fontWeight = FontWeight.Bold
         )
     }
 }

@@ -15,12 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -28,8 +24,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,7 +40,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sq.susurros.R
-import com.sq.susurros.domain.state.PlaybackState
 import com.sq.susurros.ui.components.CircularDial
 import com.sq.susurros.ui.components.PlaybackControls
 import com.sq.susurros.ui.components.TimeSelector
@@ -68,41 +61,6 @@ fun MainScreen(
     var currentScreen by remember { mutableStateOf(Screen.Player) }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_notification),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "SQ 01 Reader",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                modifier = Modifier.height(56.dp)
-            )
-        },
         bottomBar = {
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -139,14 +97,14 @@ fun MainScreen(
                 Screen.Library -> LibraryScreen(
                     books = uiState.books,
                     onBookClick = { book ->
-                        viewModel.setBookInfo(book.title, book.author ?: "Autor Desconocido", book.durationMs ?: 0L)
+                        viewModel.setBookInfo(book.title, book.author ?: "Autor Desconocido", book.durationMs ?: 0L, book.filePath)
                         currentScreen = Screen.Player
                     }
                 )
                 Screen.Player -> PlayerContent(uiState, viewModel)
                 Screen.Files -> FilesScreen(
                     onFileSelected = { book ->
-                        viewModel.setBookInfo(book.title, book.author ?: "Autor Desconocido", book.durationMs ?: 0L)
+                        viewModel.setBookInfo(book.title, book.author ?: "Autor Desconocido", book.durationMs ?: 0L, book.filePath)
                         currentScreen = Screen.Player
                     }
                 )
@@ -175,11 +133,12 @@ fun PlayerContent(uiState: MainUiState, viewModel: MainViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            BannerAd(modifier = Modifier.height(60.dp))
+            // El Banner ahora está arriba de todo
+            BannerAd(modifier = Modifier.height(70.dp))
 
             HeaderSection(
                 title = uiState.bookTitle,
@@ -190,11 +149,11 @@ fun PlayerContent(uiState: MainUiState, viewModel: MainViewModel) {
                 currentTime = currentTimeText,
                 remainingTime = remainingText,
                 progress = progress,
-                dialSize = 180.dp, // Reducido de 220dp a 180dp
+                dialSize = 200.dp,
                 onDrag = { viewModel.onSeek(it) }
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TimeSelector(
                     label = "Tiempo de escucha",
                     options = listenTimeOptions,
@@ -237,7 +196,7 @@ private fun BannerAd(modifier: Modifier = Modifier) {
                 text = "SPONSOR SQ PREMIUM",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.secondary,
-                fontSize = 9.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.5.sp
             )
@@ -245,7 +204,7 @@ private fun BannerAd(modifier: Modifier = Modifier) {
                 text = "Unleash Ultra-HD Voice Quality Now",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -264,7 +223,7 @@ private fun HeaderSection(
     ) {
         Box(
             modifier = Modifier
-                .size(60.dp) // Reducido de 72dp
+                .size(64.dp)
                 .background(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(12.dp)
@@ -276,7 +235,7 @@ private fun HeaderSection(
                 painter = painterResource(id = R.drawable.ic_notification),
                 contentDescription = "Logo",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(36.dp)
             )
         }
 
@@ -291,13 +250,13 @@ private fun HeaderSection(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                fontSize = 15.sp
+                fontSize = 16.sp
             )
             Text(
                 text = author,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 13.sp
+                fontSize = 14.sp
             )
         }
     }
