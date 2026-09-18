@@ -36,21 +36,21 @@ fun TimeSelector(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp) // Reducido de 8dp
     ) {
         Text(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 10.sp,
-            letterSpacing = 1.sp,
+            fontSize = 9.sp, // Reducido de 10sp
+            letterSpacing = 0.5.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 4.dp)
         )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp), // Reducido de 8dp
             verticalAlignment = Alignment.CenterVertically
         ) {
             options.forEachIndexed { index, optionLabel ->
@@ -82,7 +82,7 @@ private fun TimeChip(
 
     Box(
         modifier = modifier
-            .height(40.dp)
+            .height(34.dp) // Reducido de 40dp
             .clip(RoundedCornerShape(8.dp))
             .background(backgroundColor)
             .border(1.dp, borderColor, RoundedCornerShape(8.dp))
@@ -94,7 +94,7 @@ private fun TimeChip(
             style = MaterialTheme.typography.labelMedium,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             color = contentColor,
-            fontSize = 13.sp,
+            fontSize = 12.sp, // Reducido de 13sp
             textAlign = TextAlign.Center
         )
     }

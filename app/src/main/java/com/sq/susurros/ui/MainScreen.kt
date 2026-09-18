@@ -76,14 +76,14 @@ fun MainScreen(
                             painter = painterResource(id = R.drawable.ic_notification),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(28.dp)
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             "SQ 01 Reader",
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.primary,
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -99,42 +99,38 @@ fun MainScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                ),
+                modifier = Modifier.height(56.dp)
             )
         },
         bottomBar = {
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
+                tonalElevation = 8.dp,
+                modifier = Modifier.height(64.dp)
             ) {
-                NavigationBarItem(
-                    selected = currentScreen == Screen.Library,
-                    onClick = { currentScreen = Screen.Library },
-                    icon = { Icon(painterResource(id = R.drawable.ic_notification), contentDescription = null) },
-                    label = { Text("Library", fontSize = 10.sp) },
-                    colors = navigationItemColors()
+                val items = listOf(
+                    Triple(Screen.Library, "Library", R.drawable.ic_notification),
+                    Triple(Screen.Player, "Player", R.drawable.ic_play),
+                    Triple(Screen.Files, "Files", R.drawable.ic_notification),
+                    Triple(Screen.Profile, "Profile", R.drawable.ic_notification)
                 )
-                NavigationBarItem(
-                    selected = currentScreen == Screen.Player,
-                    onClick = { currentScreen = Screen.Player },
-                    icon = { Icon(painterResource(id = R.drawable.ic_play), contentDescription = null) },
-                    label = { Text("Player", fontSize = 10.sp) },
-                    colors = navigationItemColors()
-                )
-                NavigationBarItem(
-                    selected = currentScreen == Screen.Files,
-                    onClick = { currentScreen = Screen.Files },
-                    icon = { Icon(painterResource(id = R.drawable.ic_notification), contentDescription = null) },
-                    label = { Text("Files", fontSize = 10.sp) },
-                    colors = navigationItemColors()
-                )
-                NavigationBarItem(
-                    selected = currentScreen == Screen.Profile,
-                    onClick = { currentScreen = Screen.Profile },
-                    icon = { Icon(painterResource(id = R.drawable.ic_notification), contentDescription = null) },
-                    label = { Text("Profile", fontSize = 10.sp) },
-                    colors = navigationItemColors()
-                )
+
+                items.forEach { (screen, label, iconRes) ->
+                    NavigationBarItem(
+                        selected = currentScreen == screen,
+                        onClick = { currentScreen = screen },
+                        icon = { Icon(painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(20.dp)) },
+                        label = { Text(label, fontSize = 9.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        )
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -161,15 +157,6 @@ fun MainScreen(
 }
 
 @Composable
-private fun navigationItemColors() = NavigationBarItemDefaults.colors(
-    selectedIconColor = MaterialTheme.colorScheme.primary,
-    selectedTextColor = MaterialTheme.colorScheme.primary,
-    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-)
-
-@Composable
 fun PlayerContent(uiState: MainUiState, viewModel: MainViewModel) {
     val listenTimeOptions = listOf("1h", "45m", "30m", "20m")
     val musicTimeOptions = listOf("T.C.", "120s", "90s", "60s")
@@ -188,11 +175,11 @@ fun PlayerContent(uiState: MainUiState, viewModel: MainViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            BannerAd()
+            BannerAd(modifier = Modifier.height(60.dp))
 
             HeaderSection(
                 title = uiState.bookTitle,
@@ -203,10 +190,11 @@ fun PlayerContent(uiState: MainUiState, viewModel: MainViewModel) {
                 currentTime = currentTimeText,
                 remainingTime = remainingText,
                 progress = progress,
+                dialSize = 180.dp, // Reducido de 220dp a 180dp
                 onDrag = { viewModel.onSeek(it) }
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TimeSelector(
                     label = "Tiempo de escucha",
                     options = listenTimeOptions,
@@ -226,8 +214,8 @@ fun PlayerContent(uiState: MainUiState, viewModel: MainViewModel) {
                 isPlaying = uiState.isPlaying,
                 volume = uiState.volume,
                 onPlayPause = { viewModel.onPlayPause() },
-                onSkipForward = { viewModel.onSeek((uiState.bookPosition + 10_000L).toFloat() / uiState.bookDurationMs) },
-                onSkipBackward = { viewModel.onSeek(maxOf(0f, (uiState.bookPosition - 10_000L).toFloat() / uiState.bookDurationMs)) },
+                onSkipForward = { viewModel.onSkipForward() },
+                onSkipBackward = { viewModel.onSkipBackward() },
                 onVolumeChange = { viewModel.onVolumeChange(it) }
             )
         }
@@ -239,7 +227,6 @@ private fun BannerAd(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(80.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
@@ -250,14 +237,15 @@ private fun BannerAd(modifier: Modifier = Modifier) {
                 text = "SPONSOR SQ PREMIUM",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.secondary,
-                fontSize = 10.sp,
+                fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
+                letterSpacing = 0.5.sp
             )
             Text(
                 text = "Unleash Ultra-HD Voice Quality Now",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -276,25 +264,25 @@ private fun HeaderSection(
     ) {
         Box(
             modifier = Modifier
-                .size(72.dp)
+                .size(60.dp) // Reducido de 72dp
                 .background(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 )
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_notification),
                 contentDescription = "Logo",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(32.dp)
             )
         }
 
         Column(
             modifier = Modifier
-                .padding(start = 16.dp)
+                .padding(start = 12.dp)
                 .weight(1f)
         ) {
             Text(
@@ -302,12 +290,14 @@ private fun HeaderSection(
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2
+                maxLines = 1,
+                fontSize = 15.sp
             )
             Text(
                 text = author,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp
             )
         }
     }

@@ -9,11 +9,13 @@ import com.sq.susurros.data.model.MusicData
 import com.sq.susurros.data.repository.LibroRepository
 import com.sq.susurros.data.repository.MusicaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -36,16 +38,19 @@ class FilesViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val books = libroRepository.scanBooks()
-                val music = musicaRepository.scanMusic()
-                val internalMusic = musicaRepository.getInternalMusicTracks()
+                val data = withContext(Dispatchers.IO) {
+                    val books = libroRepository.scanBooks()
+                    val music = musicaRepository.scanMusic()
+                    val internalMusic = musicaRepository.getInternalMusicTracks()
+                    Triple(books, music, internalMusic)
+                }
                 
                 _uiState.update { 
                     it.copy(
                         isLoading = false,
-                        books = books,
-                        foundMusic = music,
-                        savedMusic = internalMusic,
+                        books = data.first,
+                        foundMusic = data.second,
+                        savedMusic = data.third,
                         error = null
                     )
                 }
@@ -62,7 +67,10 @@ class FilesViewModel @Inject constructor(
 
     fun onBookFileSelected(uri: Uri) {
         viewModelScope.launch {
-            libroRepository.saveBookToInternal(uri)
+            _uiState.update { it.copy(isLoading = true) }
+            withContext(Dispatchers.IO) {
+                libroRepository.saveBookToInternal(uri)
+            }
             loadAll()
         }
     }
@@ -79,8 +87,10 @@ class FilesViewModel @Inject constructor(
     fun saveSelectedMusic() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            selectedUris.forEach { uri ->
-                musicaRepository.saveMusicToInternal(uri)
+            withContext(Dispatchers.IO) {
+                selectedUris.forEach { uri ->
+                    musicaRepository.saveMusicToInternal(uri)
+                }
             }
             selectedUris.clear()
             _uiState.update { it.copy(selectedMusicCount = 0) }
@@ -90,21 +100,28 @@ class FilesViewModel @Inject constructor(
 
     fun onMusicFileSelected(uri: Uri) {
         viewModelScope.launch {
-            musicaRepository.saveMusicToInternal(uri)
+            _uiState.update { it.copy(isLoading = true) }
+            withContext(Dispatchers.IO) {
+                musicaRepository.saveMusicToInternal(uri)
+            }
             loadAll()
         }
     }
 
     fun deleteBook(bookId: Long) {
         viewModelScope.launch {
-            libroRepository.deleteBook(bookId)
+            withContext(Dispatchers.IO) {
+                libroRepository.deleteBook(bookId)
+            }
             loadAll()
         }
     }
 
     fun deleteInternalMusic(file: File) {
         viewModelScope.launch {
-            musicaRepository.deleteInternalTrack(file)
+            withContext(Dispatchers.IO) {
+                musicaRepository.deleteInternalTrack(file)
+            }
             loadAll()
         }
     }

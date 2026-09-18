@@ -1,36 +1,23 @@
 // app/src/main/java/com/sq/susurros/ui/components/PlaybackControls.kt
 package com.sq.susurros.ui.components
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sq.susurros.R
 
 @Composable
 fun PlaybackControls(
@@ -45,9 +32,9 @@ fun PlaybackControls(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 16.dp),
+            .padding(vertical = 4.dp), // Reducido de 16dp
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp) // Reducido de 20dp
     ) {
         // Slider de volumen
         VolumeSlider(
@@ -55,44 +42,33 @@ fun PlaybackControls(
             onVolumeChange = onVolumeChange
         )
 
-        // Controles: retroceso — Play/Pause — adelanto
+        // Fila de Controles: Atras 10s — Play/Pause — Adelante 10s
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Botón de retroceso 10s
-            ControlButton(
-                iconRes = R.drawable.ic_skip_previous,
-                contentDesc = "Retroceso 10s",
+            SeekControl(
+                label = "Atras",
+                icon = Icons.Default.Replay10,
                 onClick = onSkipBackward
             )
 
-            Spacer(modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(32.dp)) // Reducido de 40dp
 
-            // Botón Play/Pause (FloatingActionButton)
-            FloatingActionButton(
-                onClick = onPlayPause,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.Black,
-                shape = CircleShape,
-                modifier = Modifier.size(72.dp)
-            ) {
-                val icon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-                Icon(
-                    painter = painterResource(id = icon),
-                    contentDescription = if (isPlaying) "Pausar" else "Reproducir",
-                    tint = Color.Black,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
+            // Botón central Play/Pause
+            LargePlayButton(
+                isPlaying = isPlaying,
+                onClick = onPlayPause
+            )
 
-            Spacer(modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(32.dp)) // Reducido de 40dp
 
             // Botón de adelanto 10s
-            ControlButton(
-                iconRes = R.drawable.ic_skip_next,
-                contentDesc = "Adelanto 10s",
+            SeekControl(
+                label = "Adelante",
+                icon = Icons.Default.Forward10,
                 onClick = onSkipForward
             )
         }
@@ -100,31 +76,60 @@ fun PlaybackControls(
 }
 
 @Composable
-private fun ControlButton(
-    iconRes: Int,
-    contentDesc: String,
+private fun LargePlayButton(
+    isPlaying: Boolean,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val iconTint = MaterialTheme.colorScheme.secondary
-
     Surface(
-        modifier = Modifier
-            .size(56.dp)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .semantics { this.contentDescription = contentDesc },
+        onClick = onClick,
+        modifier = Modifier.size(64.dp), // Reducido de 72dp
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = MaterialTheme.colorScheme.primary,
+        shadowElevation = 6.dp
     ) {
-        Icon(
-            painter = painterResource(id = iconRes),
-            contentDescription = contentDesc,
-            tint = iconTint,
-            modifier = Modifier.size(24.dp).padding(12.dp)
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                tint = Color.Black,
+                modifier = Modifier.size(36.dp) // Reducido de 40dp
+            )
+        }
+    }
+}
+
+@Composable
+private fun SeekControl(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp) // Reducido de 6dp
+    ) {
+        Surface(
+            onClick = onClick,
+            modifier = Modifier.size(48.dp), // Reducido de 56dp
+            shape = CircleShape,
+            color = Color(0xFF1E1B4B),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(24.dp) // Reducido de 28dp
+                )
+            }
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 9.sp, // Reducido de 11sp
+            fontWeight = FontWeight.Medium
         )
     }
 }
@@ -139,16 +144,15 @@ private fun VolumeSlider(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 32.dp),
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_notification), // Placeholder volume mute
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp)
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.AutoMirrored.Filled.VolumeMute, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
             Slider(
                 value = volumeState.value,
                 onValueChange = {
@@ -161,21 +165,16 @@ private fun VolumeSlider(
                     inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
                     thumbColor = MaterialTheme.colorScheme.primary
                 ),
-                modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                modifier = Modifier.weight(1f).height(24.dp) // Altura limitada
             )
-            Icon(
-                painter = painterResource(id = R.drawable.ic_notification), // Placeholder volume up
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp)
-            )
+            Icon(Icons.AutoMirrored.Filled.VolumeUp, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
         }
 
         Text(
             text = "VOLUMEN",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 10.sp,
+            fontSize = 9.sp, // Reducido de 10sp
             letterSpacing = 1.sp,
             fontWeight = FontWeight.Bold
         )
